@@ -32,10 +32,10 @@ print(f"可用GPU数量: {NUM_GPUS}")
 if NUM_GPUS > 1:
     print(f"使用多GPU训练: {[torch.cuda.get_device_name(i) for i in range(NUM_GPUS)]}")
     BATCH_SIZE = 64  # 双GPU时增加batch size
-    NUM_WORKERS = 8  # 多GPU时增加数据加载线程
+    NUM_WORKERS = 4  # 限制在系统建议的最大值
 else:
     BATCH_SIZE = 32
-    NUM_WORKERS = 4
+    NUM_WORKERS = 2  # 单GPU时使用较少的worker
 
 print(f"Batch Size: {BATCH_SIZE}")
 print(f"Num Workers: {NUM_WORKERS}")
