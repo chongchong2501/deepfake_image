@@ -29,7 +29,7 @@ TRAIN_PATH = os.path.join(BASE_PATH, 'Train')
 VAL_PATH = os.path.join(BASE_PATH, 'Validation')
 IMG_SIZE = 256
 LEARNING_RATE = 1e-3  # 从头训练使用更高的学习率
-EPOCHS = 60  # 从头训练需要更多轮数
+EPOCHS = 20  # 从头训练需要更多轮数
 WEIGHT_DECAY = 1e-4  # 添加权重衰减防止过拟合
 
 # 多GPU设置
