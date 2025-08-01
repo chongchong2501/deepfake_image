@@ -24,7 +24,9 @@ from tqdm.auto import tqdm
 # =====================
 # 2. 设置参数 (深度学习配置)
 # =====================
-BASE_PATH = '/kaggle/input/deepfake-and-real-images/Dataset/Train'
+BASE_PATH = '/kaggle/input/deepfake-and-real-images/Dataset'
+TRAIN_PATH = os.path.join(BASE_PATH, 'Train')
+VAL_PATH = os.path.join(BASE_PATH, 'Validation')
 IMG_SIZE = 256
 LEARNING_RATE = 1e-3  # 从头训练使用更高的学习率
 EPOCHS = 60  # 从头训练需要更多轮数
@@ -52,22 +54,58 @@ print(f"Epochs: {EPOCHS}")
 # 3. 构建标签 DataFrame
 # =====================
 classes = ['Real', 'Fake']
-filepaths, labels = [], []
 
-for label_idx, cls in enumerate(classes):
-    folder = os.path.join(BASE_PATH, cls)
-    for img_name in os.listdir(folder):
-        filepaths.append(os.path.join(folder, img_name))
-        labels.append(label_idx)
-
-labels_df = pd.DataFrame({'filepath': filepaths, 'label': labels})
-print(f"总图片数: {len(labels_df)}")
-print(labels_df.head())
+def create_dataframe(data_path, dataset_type):
+    """创建指定数据集的DataFrame"""
+    filepaths, labels = [], []
+    
+    for label_idx, cls in enumerate(classes):
+        folder = os.path.join(data_path, cls)
+        if os.path.exists(folder):
+            for img_name in os.listdir(folder):
+                if img_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    filepaths.append(os.path.join(folder, img_name))
+                    labels.append(label_idx)
+    
+    df = pd.DataFrame({'filepath': filepaths, 'label': labels})
+    print(f"{dataset_type}集图片数: {len(df)}")
+    if len(df) > 0:
+        print(f"{dataset_type}集类别分布:")
+        for idx, cls in enumerate(classes):
+            count = len(df[df['label'] == idx])
+            print(f"  {cls}: {count}")
+    return df
 
 # =====================
 # 4. 数据划分
 # =====================
-train_df, val_df = train_test_split(labels_df, test_size=0.2, stratify=labels_df['label'], random_state=42)
+# 创建训练集和验证集DataFrame
+print("📂 加载数据集...")
+train_df = create_dataframe(TRAIN_PATH, "训练")
+
+# 尝试加载验证集，Validation 文件夹
+val_df = create_dataframe(VAL_PATH, "验证")
+
+# 检查数据集是否存在
+if len(train_df) == 0:
+    print("❌ 训练集为空！请检查路径:", TRAIN_PATH)
+    print("预期结构:")
+    print("  Dataset/Train/Real/")
+    print("  Dataset/Train/Fake/")
+    
+if len(val_df) == 0:
+    print("❌ 验证集为空！请检查路径:", VAL_PATH)
+    print("预期结构:")
+    print("  Dataset/Val/Real/")
+    print("  Dataset/Val/Fake/")
+    print("或者:")
+    print("  Dataset/Validation/Real/")
+    print("  Dataset/Validation/Fake/")
+
+print(f"\n📊 数据集总览:")
+print(f"训练集总数: {len(train_df)}")
+print(f"验证集总数: {len(val_df)}")
+
 
 # =====================
 # 5. 数据增强 & 预处理 (深度学习需要更强的数据增强)
