@@ -29,9 +29,9 @@ TRAIN_PATH = os.path.join(BASE_PATH, 'Train')
 VAL_PATH = os.path.join(BASE_PATH, 'Validation')
 IMG_SIZE = 256
 LEARNING_RATE = 1e-3  # 从头训练使用更高的学习率
-EPOCHS = 20  # 从头训练需要更多轮数
+EPOCHS = 15  # 从头训练需要更多轮数
 WEIGHT_DECAY = 1e-4  # 添加权重衰减防止过拟合
-
+MAX_VAL_SAMPLES = 6400  # 限制验证集样本数
 # 多GPU设置
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_GPUS = torch.cuda.device_count()
@@ -86,6 +86,18 @@ train_df = create_dataframe(TRAIN_PATH, "训练")
 # 尝试加载验证集，Validation 文件夹
 val_df = create_dataframe(VAL_PATH, "验证")
 
+if len(val_df) > MAX_VAL_SAMPLES:
+    print(f"🔄 验证集原始大小: {len(val_df)}, 限制为: {MAX_VAL_SAMPLES}")
+    # 随机采样保持类别平衡
+    val_df = val_df.sample(n=MAX_VAL_SAMPLES, random_state=42).reset_index(drop=True)
+    print(f"✅ 验证集已随机采样至 {len(val_df)} 张图片")
+    
+    # 显示采样后的类别分布
+    print("📊 采样后验证集类别分布:")
+    for idx, cls in enumerate(classes):
+        count = len(val_df[val_df['label'] == idx])
+        print(f"  {cls}: {count}")
+
 # 检查数据集是否存在
 if len(train_df) == 0:
     print("❌ 训练集为空！请检查路径:", TRAIN_PATH)
@@ -105,6 +117,7 @@ if len(val_df) == 0:
 print(f"\n📊 数据集总览:")
 print(f"训练集总数: {len(train_df)}")
 print(f"验证集总数: {len(val_df)}")
+print(f"验证集批次数: {len(val_df) // BATCH_SIZE + (1 if len(val_df) % BATCH_SIZE > 0 else 0)}")
 
 
 # =====================
@@ -195,17 +208,7 @@ optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, verbose=True)
 
 # =====================
-# 9. GPU使用监控函数
-# =====================
-def print_gpu_usage():
-    if torch.cuda.is_available():
-        for i in range(NUM_GPUS):
-            print(f"GPU {i}: {torch.cuda.get_device_name(i)} - "
-                  f"Memory: {torch.cuda.memory_allocated(i)/1024**3:.2f}GB / "
-                  f"{torch.cuda.memory_reserved(i)/1024**3:.2f}GB")
-
-# =====================
-# 10. 训练 & 验证循环 + Early Stopping
+# 9. 训练 & 验证循环 + Early Stopping
 # =====================
 best_val_loss = float('inf')
 patience = 10  # 从头训练需要更多耐心
@@ -213,25 +216,13 @@ trigger_times = 0
 train_losses, val_losses, val_accuracies = [], [], []
 
 print("🚀 开始深度学习训练...")
-print_gpu_usage()
 
 for epoch in range(EPOCHS):
     model.train()
     train_loss = 0
     
-    # 在第一个epoch显示详细的GPU使用情况
-    if epoch == 0:
-        print("第一个batch的GPU使用情况:")
-    
     for batch_idx, (imgs, labels) in enumerate(tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS} [Train]")):
         imgs, labels = imgs.to(DEVICE, non_blocking=True), labels.to(DEVICE, non_blocking=True)
-        
-        # 在第一个epoch的第一个batch显示GPU分布情况
-        if epoch == 0 and batch_idx == 0:
-            print(f"输入数据形状: {imgs.shape}")
-            if NUM_GPUS > 1:
-                print(f"数据将分布到 {NUM_GPUS} 个GPU上")
-                print_gpu_usage()
         
         optimizer.zero_grad()
         outputs = model(imgs)
@@ -273,10 +264,6 @@ for epoch in range(EPOCHS):
     
     print(f"Epoch [{epoch+1}/{EPOCHS}] | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f} | LR: {current_lr:.6f}")
     
-    # 每10个epoch显示一次GPU使用情况
-    if (epoch + 1) % 10 == 0:
-        print_gpu_usage()
-    
     # Early Stopping
     if val_loss < best_val_loss:
         best_val_loss = val_loss
@@ -294,7 +281,7 @@ for epoch in range(EPOCHS):
             break
 
 # =====================
-# 11. 训练曲线可视化
+# 10. 训练曲线可视化
 # =====================
 plt.figure(figsize=(15,5))
 plt.subplot(1,3,1)
@@ -327,7 +314,7 @@ plt.tight_layout()
 plt.show()
 
 # =====================
-# 12. 混淆矩阵 & 报告
+# 11. 混淆矩阵 & 报告
 # =====================
 plt.figure(figsize=(8,6))
 cm = confusion_matrix(all_labels, all_preds)
@@ -343,7 +330,7 @@ print("="*50)
 print(classification_report(all_labels, all_preds, target_names=classes))
 
 # =====================
-# 13. 最终统计
+# 12. 最终统计
 # =====================
 print(f"\n📊 训练统计:")
 print(f"总训练轮数: {len(train_losses)}")
