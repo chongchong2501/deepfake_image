@@ -33,12 +33,23 @@ TRAIN_PATH = os.path.join(BASE_PATH, 'Train')
 VAL_PATH = os.path.join(BASE_PATH, 'Validation')
 
 # 训练参数
+# 图像大小
 IMG_SIZE = 256
+
+# 训练批次大小
 BATCH_SIZE = 32
+
+# 学习率
 LEARNING_RATE = 1e-4
-EPOCHS = 15
+
+# 训练轮数
+EPOCHS = 10
+
+# 权重衰减系数
 WEIGHT_DECAY = 1e-4
-PATIENCE = 8
+
+# 早停轮数
+PATIENCE = 5
 
 # 设备配置
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -115,16 +126,10 @@ def create_efficientnet_b0():
     model.classifier[1] = nn.Linear(1280, 2)
     return model
 
-def create_efficientnet_b1():
-    """创建EfficientNet-B1模型"""
-    model = models.efficientnet_b1(weights='IMAGENET1K_V1')
-    model.classifier[1] = nn.Linear(1280, 2)
-    return model
-
-def create_resnet50():
-    """创建ResNet50模型"""
-    model = models.resnet50(weights='IMAGENET1K_V1')
-    model.fc = nn.Linear(2048, 2)
+def create_resnet18():
+    """创建ResNet18模型"""
+    model = models.resnet18(weights='IMAGENET1K_V1')
+    model.fc = nn.Linear(512, 2)
     return model
 
 def create_convnext_tiny():
@@ -139,13 +144,9 @@ MODEL_CONFIGS = {
         'create_fn': create_efficientnet_b0,
         'name': 'EfficientNet-B0'
     },
-    'efficientnet_b1': {
-        'create_fn': create_efficientnet_b1,
-        'name': 'EfficientNet-B1'
-    },
-    'resnet50': {
-        'create_fn': create_resnet50,
-        'name': 'ResNet50'
+    'resnet18': {
+        'create_fn': create_resnet18,
+        'name': 'ResNet18'
     },
     'convnext_tiny': {
         'create_fn': create_convnext_tiny,
@@ -336,9 +337,24 @@ print("📂 加载数据集...")
 train_df = create_dataframe(TRAIN_PATH, "训练")
 val_df = create_dataframe(VAL_PATH, "验证")
 
+# 限制验证集大小为6400以减少内存使用
+MAX_VAL_SAMPLES = 6400
+if len(val_df) > MAX_VAL_SAMPLES:
+    print(f"⚠️ 验证集过大 ({len(val_df)} 张)，随机采样 {MAX_VAL_SAMPLES} 张图片")
+    # 保持类别平衡的随机采样
+    val_df = val_df.groupby('label', group_keys=False).apply(
+        lambda x: x.sample(min(len(x), MAX_VAL_SAMPLES//2), random_state=42)
+    ).reset_index(drop=True)
+    print(f"✅ 验证集采样完成，当前大小: {len(val_df)}")
+    print(f"验证集类别分布:")
+    for idx, cls in enumerate(classes):
+        count = len(val_df[val_df['label'] == idx])
+        print(f"  {cls}: {count} ({count/len(val_df)*100:.1f}%)")
+
 print(f"\n📊 数据集总览:")
 print(f"训练集总数: {len(train_df)}")
 print(f"验证集总数: {len(val_df)}")
+print(f"验证批次数: {len(val_df) // BATCH_SIZE + (1 if len(val_df) % BATCH_SIZE > 0 else 0)}")
 
 # 创建数据集和数据加载器
 train_dataset = DeepfakeDataset(train_df, transform=train_transform)
@@ -352,7 +368,7 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_w
 print("\n🚀 开始训练多个模型...")
 
 # 选择要训练的模型（可以根据需要调整）
-selected_models = ['efficientnet_b0', 'resnet50', 'convnext_tiny']  # 减少模型数量以适应Kaggle环境
+selected_models = ['efficientnet_b0', 'resnet18', 'convnext_tiny']  # 减少模型数量以适应Kaggle环境
 model_paths = {}
 model_results = {}
 
