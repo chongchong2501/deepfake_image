@@ -344,8 +344,9 @@ print(f"验证集总数: {len(val_df)}")
 train_dataset = DeepfakeDataset(train_df, transform=train_transform)
 val_dataset = DeepfakeDataset(val_df, transform=val_transform)
 
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+# 修复多进程错误：设置num_workers=0避免进程管理问题
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, pin_memory=True)
+val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
 
 # Cell 9: 训练所有模型
 print("\n🚀 开始训练多个模型...")
