@@ -49,7 +49,7 @@ EPOCHS = 15
 WEIGHT_DECAY = 1e-4
 
 # 早停轮数
-PATIENCE = 7
+PATIENCE = 4
 
 # 多GPU设置
 NUM_GPUS = torch.cuda.device_count()
