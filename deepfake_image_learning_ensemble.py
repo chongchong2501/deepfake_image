@@ -43,20 +43,35 @@ BATCH_SIZE = 32
 LEARNING_RATE = 1e-4
 
 # 训练轮数
-EPOCHS = 10
+EPOCHS = 15
 
 # 权重衰减系数
 WEIGHT_DECAY = 1e-4
 
 # 早停轮数
-PATIENCE = 5
+PATIENCE = 7
 
-# 设备配置
+# 多GPU设置
+NUM_GPUS = torch.cuda.device_count()
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"使用设备: {DEVICE}")
 if torch.cuda.is_available():
-    print(f"GPU: {torch.cuda.get_device_name(0)}")
-    print(f"GPU内存: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f}GB")
+    if NUM_GPUS > 1:
+        print(f"使用多GPU训练: {[torch.cuda.get_device_name(i) for i in range(NUM_GPUS)]}")
+        print(f"GPU数量: {NUM_GPUS}")
+        NUM_WORKERS = 4  # 多GPU时增加数据加载线程
+    else:
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
+        NUM_WORKERS = 0  # 单GPU时避免多进程问题
+    
+    for i in range(NUM_GPUS):
+        print(f"GPU {i}: {torch.cuda.get_device_name(i)}")
+        print(f"GPU {i} 内存: {torch.cuda.get_device_properties(i).total_memory / 1024**3:.1f}GB")
+else:
+    NUM_WORKERS = 0
+    print("使用CPU训练")
+
+
 
 # Cell 3: 数据加载函数
 classes = ['Real', 'Fake']
@@ -163,6 +178,11 @@ def train_single_model(model_key, train_loader, val_loader, save_path):
     model = MODEL_CONFIGS[model_key]['create_fn']()
     model = model.to(DEVICE)
     
+    # 多GPU支持
+    if NUM_GPUS > 1:
+        model = nn.DataParallel(model)
+        print(f"✅ 模型已配置为多GPU训练，使用 {NUM_GPUS} 个GPU")
+    
     # 损失函数和优化器
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
@@ -220,7 +240,11 @@ def train_single_model(model_key, train_loader, val_loader, save_path):
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             patience_counter = 0
-            torch.save(model.state_dict(), save_path)
+            # 保存模型时处理多GPU情况
+            if NUM_GPUS > 1:
+                torch.save(model.module.state_dict(), save_path)
+            else:
+                torch.save(model.state_dict(), save_path)
             print(f"✅ 最佳模型已保存，验证准确率: {best_val_acc:.4f}")
         else:
             patience_counter += 1
@@ -239,9 +263,16 @@ def load_trained_models(model_paths):
             model = MODEL_CONFIGS[model_key]['create_fn']()
             model.load_state_dict(torch.load(path, map_location=DEVICE))
             model = model.to(DEVICE)
+            
+            # 多GPU支持
+            if NUM_GPUS > 1:
+                model = nn.DataParallel(model)
+                print(f"✅ 已加载 {MODEL_CONFIGS[model_key]['name']} (多GPU模式)")
+            else:
+                print(f"✅ 已加载 {MODEL_CONFIGS[model_key]['name']}")
+            
             model.eval()
             models_dict[model_key] = model
-            print(f"✅ 已加载 {MODEL_CONFIGS[model_key]['name']}")
         else:
             print(f"❌ 模型文件不存在: {path}")
     return models_dict
@@ -360,9 +391,9 @@ print(f"验证批次数: {len(val_df) // BATCH_SIZE + (1 if len(val_df) % BATCH_
 train_dataset = DeepfakeDataset(train_df, transform=train_transform)
 val_dataset = DeepfakeDataset(val_df, transform=val_transform)
 
-# 修复多进程错误：设置num_workers=0避免进程管理问题
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, pin_memory=True)
-val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
+# 使用动态配置的num_workers和pin_memory
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
+val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
 # Cell 9: 训练所有模型
 print("\n🚀 开始训练多个模型...")
