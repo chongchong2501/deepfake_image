@@ -10,25 +10,47 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, models
-from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score, f1_score
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
+import matplotlib.patches as patches
 from tqdm.auto import tqdm
 import warnings
+import time
+from PIL import Image
+import gc
 warnings.filterwarnings('ignore')
+
+# 解释工具导入
+try:
+    from captum.attr import LayerGradCam, IntegratedGradients
+    from captum.attr import visualization as viz
+    CAPTUM_AVAILABLE = True
+except ImportError:
+    print("⚠️ Captum not available. Install with: pip install captum")
+    CAPTUM_AVAILABLE = False
+
+# 设置matplotlib使用英文字体和高DPI
+plt.rcParams['font.family'] = 'DejaVu Sans'
+plt.rcParams['font.size'] = 10
+plt.rcParams['figure.dpi'] = 300
+plt.rcParams['savefig.dpi'] = 300
+plt.rcParams['savefig.bbox'] = 'tight'
 
 # 设置随机种子
 torch.manual_seed(42)
 np.random.seed(42)
 
-print("🚀 Kaggle多模型集成深度伪造检测")
-print(f"PyTorch版本: {torch.__version__}")
+print("🚀 Kaggle Multi-Model Ensemble Deepfake Detection")
+print(f"PyTorch Version: {torch.__version__}")
+print(f"Captum Available: {CAPTUM_AVAILABLE}")
 
 # Cell 2: 参数配置
-# Kaggle环境路径
-BASE_PATH = 'E:\program\deepfake_image\Dataset'
+BASE_PATH = r'E:\program\deepfake_image\Dataset'
 TRAIN_PATH = os.path.join(BASE_PATH, 'Train')
 VAL_PATH = os.path.join(BASE_PATH, 'Validation')
 
@@ -52,27 +74,32 @@ WEIGHT_DECAY = 1e-4
 PATIENCE = 5
 
 # 数据加载器的工作进程数量
-NUM_WORKERS = 24
+NUM_WORKERS = 4
 
-# # 多GPU设置
-# NUM_GPUS = torch.cuda.device_count()
-# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# print(f"使用设备: {DEVICE}")
-# if torch.cuda.is_available():
-#     if NUM_GPUS > 1:
-#         print(f"使用多GPU训练: {[torch.cuda.get_device_name(i) for i in range(NUM_GPUS)]}")
-#         print(f"GPU数量: {NUM_GPUS}")
-#         NUM_WORKERS = 4  # 多GPU时增加数据加载线程
-#     else:
-#         print(f"GPU: {torch.cuda.get_device_name(0)}")
-#         NUM_WORKERS = 0  # 单GPU时避免多进程问题
+# 多GPU设置
+NUM_GPUS = torch.cuda.device_count()
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Device: {DEVICE}")
+if torch.cuda.is_available():
+    if NUM_GPUS > 1:
+        print(f"Multi-GPU Training: {[torch.cuda.get_device_name(i) for i in range(NUM_GPUS)]}")
+        print(f"GPU Count: {NUM_GPUS}")
+        NUM_WORKERS = 4  # 多GPU时增加数据加载线程
+    else:
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
+        NUM_WORKERS = 2  # 单GPU时减少数据加载线程
     
-#     for i in range(NUM_GPUS):
-#         print(f"GPU {i}: {torch.cuda.get_device_name(i)}")
-#         print(f"GPU {i} 内存: {torch.cuda.get_device_properties(i).total_memory / 1024**3:.1f}GB")
-# else:
-#     NUM_WORKERS = 0
-#     print("使用CPU训练")
+    for i in range(NUM_GPUS):
+        print(f"GPU {i}: {torch.cuda.get_device_name(i)}")
+        print(f"GPU {i} Memory: {torch.cuda.get_device_properties(i).total_memory / 1024**3:.1f}GB")
+else:
+    NUM_WORKERS = 0
+    print("Using CPU Training")
+
+# 创建输出目录
+PLOTS_DIR = './works/plots'
+os.makedirs(PLOTS_DIR, exist_ok=True)
+print(f"Plots will be saved to: {PLOTS_DIR}")
 
 
 
@@ -175,7 +202,10 @@ MODEL_CONFIGS = {
 # Cell 6: 单模型训练函数
 def train_single_model(model_key, train_loader, val_loader, save_path):
     """训练单个模型"""
-    print(f"\n🔥 开始训练 {MODEL_CONFIGS[model_key]['name']}")
+    print(f"\n🔥 Starting Training {MODEL_CONFIGS[model_key]['name']}")
+    
+    # 记录训练开始时间
+    start_time = time.time()
     
     # 创建模型
     model = MODEL_CONFIGS[model_key]['create_fn']()
@@ -184,7 +214,7 @@ def train_single_model(model_key, train_loader, val_loader, save_path):
     # 多GPU支持
     if NUM_GPUS > 1:
         model = nn.DataParallel(model)
-        print(f"✅ 模型已配置为多GPU训练，使用 {NUM_GPUS} 个GPU")
+        print(f"✅ Model configured for multi-GPU training with {NUM_GPUS} GPUs")
     
     # 损失函数和优化器
     criterion = nn.CrossEntropyLoss()
@@ -194,7 +224,8 @@ def train_single_model(model_key, train_loader, val_loader, save_path):
     # 训练记录
     best_val_acc = 0
     patience_counter = 0
-    train_losses, val_losses, val_accuracies = [], [], []
+    train_losses, val_losses, val_accuracies, learning_rates = [], [], [], []
+    val_f1_scores = []
     
     for epoch in range(EPOCHS):
         # 训练阶段
@@ -218,6 +249,9 @@ def train_single_model(model_key, train_loader, val_loader, save_path):
         val_loss = 0
         correct = 0
         total = 0
+        all_val_preds = []
+        all_val_labels = []
+        
         with torch.no_grad():
             for imgs, labels in tqdm(val_loader, desc=f"Epoch {epoch+1}/{EPOCHS} [Val]"):
                 imgs, labels = imgs.to(DEVICE), labels.to(DEVICE)
@@ -228,16 +262,23 @@ def train_single_model(model_key, train_loader, val_loader, save_path):
                 _, predicted = torch.max(outputs, 1)
                 correct += (predicted == labels).sum().item()
                 total += labels.size(0)
+                
+                all_val_preds.extend(predicted.cpu().numpy())
+                all_val_labels.extend(labels.cpu().numpy())
         
         val_loss /= len(val_loader)
         val_acc = correct / total
+        val_f1 = f1_score(all_val_labels, all_val_preds, average='weighted')
+        
         val_losses.append(val_loss)
         val_accuracies.append(val_acc)
+        val_f1_scores.append(val_f1)
         
         scheduler.step(val_loss)
         current_lr = optimizer.param_groups[0]['lr']
+        learning_rates.append(current_lr)
         
-        print(f"Epoch {epoch+1}: Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, LR: {current_lr:.6f}")
+        print(f"Epoch {epoch+1}: Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1: {val_f1:.4f}, LR: {current_lr:.6f}")
         
         # 保存最佳模型
         if val_acc > best_val_acc:
@@ -248,16 +289,377 @@ def train_single_model(model_key, train_loader, val_loader, save_path):
                 torch.save(model.module.state_dict(), save_path)
             else:
                 torch.save(model.state_dict(), save_path)
-            print(f"✅ 最佳模型已保存，验证准确率: {best_val_acc:.4f}")
+            print(f"✅ Best model saved, validation accuracy: {best_val_acc:.4f}")
         else:
             patience_counter += 1
             if patience_counter >= PATIENCE:
                 print("⛔ Early stopping triggered")
                 break
     
-    return best_val_acc, train_losses, val_losses, val_accuracies
+    # 计算训练时间
+    training_time = time.time() - start_time
+    print(f"⏱️ Training completed in {training_time:.2f} seconds")
+    
+    return {
+         'best_acc': best_val_acc,
+         'train_losses': train_losses,
+         'val_losses': val_losses,
+         'val_accuracies': val_accuracies,
+         'val_f1_scores': val_f1_scores,
+         'learning_rates': learning_rates,
+         'training_time': training_time
+     }
 
-# Cell 7: 集成预测函数
+# Cell 7: 可视化函数
+def plot_training_history(model_results, save_dir=PLOTS_DIR):
+    """绘制训练历史可视化"""
+    print("📊 Generating training history visualizations...")
+    
+    # 1. 单模型训练历史 (2x2 子图)
+    for model_key, results in model_results.items():
+        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+        fig.suptitle(f'{MODEL_CONFIGS[model_key]["name"]} Training History', fontsize=16, fontweight='bold')
+        
+        epochs = range(1, len(results['train_losses']) + 1)
+        
+        # Loss曲线
+        axes[0, 0].plot(epochs, results['train_losses'], 'b-', label='Train Loss', linewidth=2)
+        axes[0, 0].plot(epochs, results['val_losses'], 'r-', label='Validation Loss', linewidth=2)
+        axes[0, 0].set_title('Training & Validation Loss', fontweight='bold')
+        axes[0, 0].set_xlabel('Epoch')
+        axes[0, 0].set_ylabel('Loss')
+        axes[0, 0].legend()
+        axes[0, 0].grid(True, alpha=0.3)
+        
+        # Accuracy曲线
+        axes[0, 1].plot(epochs, results['val_accuracies'], 'g-', label='Validation Accuracy', linewidth=2)
+        axes[0, 1].set_title('Validation Accuracy', fontweight='bold')
+        axes[0, 1].set_xlabel('Epoch')
+        axes[0, 1].set_ylabel('Accuracy')
+        axes[0, 1].legend()
+        axes[0, 1].grid(True, alpha=0.3)
+        
+        # Learning Rate曲线
+        axes[1, 0].plot(epochs, results['learning_rates'], 'purple', linewidth=2)
+        axes[1, 0].set_title('Learning Rate Schedule', fontweight='bold')
+        axes[1, 0].set_xlabel('Epoch')
+        axes[1, 0].set_ylabel('Learning Rate')
+        axes[1, 0].set_yscale('log')
+        axes[1, 0].grid(True, alpha=0.3)
+        
+        # Validation Accuracy分布
+        axes[1, 1].hist(results['val_accuracies'], bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+        axes[1, 1].axvline(results['best_acc'], color='red', linestyle='--', linewidth=2, label=f'Best: {results["best_acc"]:.4f}')
+        axes[1, 1].set_title('Validation Accuracy Distribution', fontweight='bold')
+        axes[1, 1].set_xlabel('Accuracy')
+        axes[1, 1].set_ylabel('Frequency')
+        axes[1, 1].legend()
+        axes[1, 1].grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        save_path = os.path.join(save_dir, f'{model_key}_training_history.png')
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"✅ Saved: {save_path}")
+    
+    # 2. 多模型对比图 (四线对比)
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle('Multi-Model Training Comparison', fontsize=16, fontweight='bold')
+    
+    colors = ['blue', 'red', 'green', 'orange', 'purple']
+    
+    # 验证Loss对比
+    for i, (model_key, results) in enumerate(model_results.items()):
+        epochs = range(1, len(results['val_losses']) + 1)
+        axes[0, 0].plot(epochs, results['val_losses'], color=colors[i % len(colors)], 
+                       label=MODEL_CONFIGS[model_key]['name'], linewidth=2)
+    axes[0, 0].set_title('Validation Loss Comparison', fontweight='bold')
+    axes[0, 0].set_xlabel('Epoch')
+    axes[0, 0].set_ylabel('Validation Loss')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 验证Accuracy对比
+    for i, (model_key, results) in enumerate(model_results.items()):
+        epochs = range(1, len(results['val_accuracies']) + 1)
+        axes[0, 1].plot(epochs, results['val_accuracies'], color=colors[i % len(colors)], 
+                       label=MODEL_CONFIGS[model_key]['name'], linewidth=2)
+    axes[0, 1].set_title('Validation Accuracy Comparison', fontweight='bold')
+    axes[0, 1].set_xlabel('Epoch')
+    axes[0, 1].set_ylabel('Validation Accuracy')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # 训练时长对比
+    model_names = [MODEL_CONFIGS[key]['name'] for key in model_results.keys()]
+    training_times = [results['training_time'] for results in model_results.values()]
+    bars = axes[1, 0].bar(model_names, training_times, color=colors[:len(model_names)], alpha=0.7)
+    axes[1, 0].set_title('Training Time Comparison', fontweight='bold')
+    axes[1, 0].set_ylabel('Training Time (seconds)')
+    axes[1, 0].tick_params(axis='x', rotation=45)
+    
+    # 添加数值标签
+    for bar, time_val in zip(bars, training_times):
+        height = bar.get_height()
+        axes[1, 0].text(bar.get_x() + bar.get_width()/2., height + height*0.01,
+                       f'{time_val:.1f}s', ha='center', va='bottom', fontweight='bold')
+    
+    # F1-Score对比
+    for i, (model_key, results) in enumerate(model_results.items()):
+        epochs = range(1, len(results['val_f1_scores']) + 1)
+        axes[1, 1].plot(epochs, results['val_f1_scores'], color=colors[i % len(colors)], 
+                       label=MODEL_CONFIGS[model_key]['name'], linewidth=2)
+    axes[1, 1].set_title('F1-Score Comparison', fontweight='bold')
+    axes[1, 1].set_xlabel('Epoch')
+    axes[1, 1].set_ylabel('F1-Score')
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    save_path = os.path.join(save_dir, 'multi_model_comparison.png')
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"✅ Saved: {save_path}")
+
+def plot_confusion_matrix(y_true, y_pred, title, save_name, save_dir=PLOTS_DIR):
+    """绘制混淆矩阵"""
+    cm = confusion_matrix(y_true, y_pred)
+    
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", 
+                xticklabels=['Real', 'Fake'], yticklabels=['Real', 'Fake'],
+                cbar_kws={'label': 'Count'})
+    plt.title(title, fontsize=14, fontweight='bold')
+    plt.ylabel('True Label', fontweight='bold')
+    plt.xlabel('Predicted Label', fontweight='bold')
+    
+    # 添加准确率信息
+    accuracy = accuracy_score(y_true, y_pred)
+    plt.text(0.5, -0.1, f'Accuracy: {accuracy:.4f}', 
+             transform=plt.gca().transAxes, ha='center', fontweight='bold')
+    
+    save_path = os.path.join(save_dir, f'{save_name}_confusion_matrix.png')
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"✅ Saved: {save_path}")
+
+def plot_ensemble_analysis(models, val_loader, device, save_dir=PLOTS_DIR):
+    """绘制集成分析可视化"""
+    print("📊 Generating ensemble analysis visualizations...")
+    
+    # 收集所有模型的预测概率
+    all_probs = []
+    all_preds = []
+    y_true = []
+    
+    for model in models:
+        model.eval()
+        probs = []
+        preds = []
+        
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                prob = F.softmax(outputs, dim=1)
+                probs.extend(prob.cpu().numpy())
+                preds.extend(torch.argmax(outputs, dim=1).cpu().numpy())
+                
+                if len(y_true) == 0:  # 只在第一个模型时收集真实标签
+                    y_true.extend(labels.cpu().numpy())
+        
+        all_probs.append(np.array(probs))
+        all_preds.append(np.array(preds))
+    
+    all_probs = np.array(all_probs)  # shape: (n_models, n_samples, n_classes)
+    all_preds = np.array(all_preds)  # shape: (n_models, n_samples)
+    y_true = np.array(y_true)
+    
+    # 计算集成预测
+    ensemble_probs = np.mean(all_probs, axis=0)  # 平均概率
+    ensemble_preds = np.argmax(ensemble_probs, axis=1)
+    ensemble_confidence = np.max(ensemble_probs, axis=1)
+    
+    # 创建2x2子图
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle('Ensemble Analysis', fontsize=16, fontweight='bold')
+    
+    # 1. 预测概率直方图
+    for i, model_name in enumerate(['EfficientNet-B0', 'ResNet18', 'ConvNeXt-Tiny']):
+        if i < len(all_probs):
+            fake_probs = all_probs[i][:, 1]  # 假图片的概率
+            axes[0, 0].hist(fake_probs, bins=30, alpha=0.6, label=model_name, density=True)
+    
+    axes[0, 0].set_title('Prediction Probability Distribution (Fake Class)', fontweight='bold')
+    axes[0, 0].set_xlabel('Probability')
+    axes[0, 0].set_ylabel('Density')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 2. 模型一致性热图
+    n_models = len(all_preds)
+    consistency_matrix = np.zeros((n_models, n_models))
+    
+    for i in range(n_models):
+        for j in range(n_models):
+            consistency_matrix[i, j] = np.mean(all_preds[i] == all_preds[j])
+    
+    model_names = ['EfficientNet-B0', 'ResNet18', 'ConvNeXt-Tiny'][:n_models]
+    sns.heatmap(consistency_matrix, annot=True, fmt='.3f', cmap='YlOrRd',
+                xticklabels=model_names, yticklabels=model_names, ax=axes[0, 1])
+    axes[0, 1].set_title('Model Prediction Consistency', fontweight='bold')
+    
+    # 3. 集成置信度对比（正确vs错误预测）
+    correct_mask = ensemble_preds == y_true
+    correct_confidence = ensemble_confidence[correct_mask]
+    incorrect_confidence = ensemble_confidence[~correct_mask]
+    
+    axes[1, 0].hist(correct_confidence, bins=30, alpha=0.7, label='Correct Predictions', 
+                   color='green', density=True)
+    axes[1, 0].hist(incorrect_confidence, bins=30, alpha=0.7, label='Incorrect Predictions', 
+                   color='red', density=True)
+    axes[1, 0].set_title('Ensemble Prediction Confidence', fontweight='bold')
+    axes[1, 0].set_xlabel('Confidence')
+    axes[1, 0].set_ylabel('Density')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 4. 各类别F1-score柱状图
+    class_names = ['Real', 'Fake']
+    # 计算每个类别的F1分数
+    f1_scores = f1_score(y_true, ensemble_preds, average=None)  # 返回每个类别的F1分数
+    
+    bars = axes[1, 1].bar(class_names, f1_scores, color=['skyblue', 'lightcoral'], alpha=0.8)
+    axes[1, 1].set_title('Per-Class F1-Score', fontweight='bold')
+    axes[1, 1].set_ylabel('F1-Score')
+    axes[1, 1].set_ylim(0, 1)
+    
+    # 添加数值标签
+    for bar, score in zip(bars, f1_scores):
+        height = bar.get_height()
+        axes[1, 1].text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                       f'{score:.3f}', ha='center', va='bottom', fontweight='bold')
+    
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    save_path = os.path.join(save_dir, 'ensemble_analysis.png')
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"✅ Saved: {save_path}")
+
+def plot_interpretability_analysis(models, val_loader, device, save_dir=PLOTS_DIR, num_samples=4):
+    """绘制模型解释性分析（Grad-CAM + Integrated Gradients）"""
+    print("📊 Generating interpretability analysis...")
+    
+    if not CAPTUM_AVAILABLE:
+        print("⚠️ Captum not available, skipping interpretability analysis")
+        return
+    
+    # 获取一些样本进行分析
+    sample_images = []
+    sample_labels = []
+    sample_preds = []
+    
+    models[0].eval()
+    with torch.no_grad():
+        for inputs, labels in val_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = models[0](inputs)
+            preds = torch.argmax(outputs, dim=1)
+            
+            # 选择一些有趣的样本（预测正确和错误的）
+            for i in range(min(num_samples, len(inputs))):
+                sample_images.append(inputs[i])
+                sample_labels.append(labels[i].item())
+                sample_preds.append(preds[i].item())
+            
+            if len(sample_images) >= num_samples:
+                break
+    
+    # 为每个模型生成解释
+    for model_idx, model in enumerate(models):
+        model_name = ['EfficientNet-B0', 'ResNet18', 'ConvNeXt-Tiny'][model_idx]
+        
+        # 创建子图
+        fig, axes = plt.subplots(num_samples, 4, figsize=(16, 4*num_samples))
+        if num_samples == 1:
+            axes = axes.reshape(1, -1)
+        
+        fig.suptitle(f'{model_name} - Interpretability Analysis', fontsize=16, fontweight='bold')
+        
+        for sample_idx in range(num_samples):
+            input_tensor = sample_images[sample_idx].unsqueeze(0)
+            true_label = sample_labels[sample_idx]
+            pred_label = sample_preds[sample_idx]
+            
+            # 原始图像
+            img_np = input_tensor.squeeze().cpu().numpy().transpose(1, 2, 0)
+            img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())  # 归一化到[0,1]
+            axes[sample_idx, 0].imshow(img_np)
+            axes[sample_idx, 0].set_title(f'Original\nTrue: {true_label}, Pred: {pred_label}')
+            axes[sample_idx, 0].axis('off')
+            
+            try:
+                # Grad-CAM
+                if hasattr(model, 'features'):  # EfficientNet/ResNet
+                    target_layer = model.features[-1]
+                elif hasattr(model, 'stages'):  # ConvNeXt
+                    target_layer = model.stages[-1]
+                else:
+                    # 尝试找到最后一个卷积层
+                    target_layer = None
+                    for name, module in model.named_modules():
+                        if isinstance(module, torch.nn.Conv2d):
+                            target_layer = module
+                
+                if target_layer is not None:
+                    grad_cam = LayerGradCam(model, target_layer)
+                    attribution = grad_cam.attribute(input_tensor, target=pred_label)
+                    
+                    # 显示Grad-CAM
+                    grad_cam_np = attribution.squeeze().cpu().numpy()
+                    axes[sample_idx, 1].imshow(grad_cam_np, cmap='jet', alpha=0.7)
+                    axes[sample_idx, 1].imshow(img_np, alpha=0.3)
+                    axes[sample_idx, 1].set_title('Grad-CAM')
+                    axes[sample_idx, 1].axis('off')
+                else:
+                    axes[sample_idx, 1].text(0.5, 0.5, 'Grad-CAM\nNot Available', 
+                                           ha='center', va='center', transform=axes[sample_idx, 1].transAxes)
+                    axes[sample_idx, 1].axis('off')
+                
+                # Integrated Gradients
+                ig = IntegratedGradients(model)
+                attribution = ig.attribute(input_tensor, target=pred_label, n_steps=50)
+                
+                # 显示Integrated Gradients
+                ig_np = attribution.squeeze().cpu().numpy()
+                ig_np = np.transpose(ig_np, (1, 2, 0))
+                ig_np = np.abs(ig_np).sum(axis=2)  # 取绝对值并求和
+                axes[sample_idx, 2].imshow(ig_np, cmap='hot')
+                axes[sample_idx, 2].set_title('Integrated Gradients')
+                axes[sample_idx, 2].axis('off')
+                
+                # 叠加显示
+                axes[sample_idx, 3].imshow(img_np, alpha=0.7)
+                axes[sample_idx, 3].imshow(ig_np, cmap='hot', alpha=0.3)
+                axes[sample_idx, 3].set_title('Overlay')
+                axes[sample_idx, 3].axis('off')
+                
+            except Exception as e:
+                print(f"⚠️ Error generating interpretability for sample {sample_idx}: {e}")
+                for col in range(1, 4):
+                    axes[sample_idx, col].text(0.5, 0.5, f'Error:\n{str(e)[:50]}...', 
+                                             ha='center', va='center', transform=axes[sample_idx, col].transAxes)
+                    axes[sample_idx, col].axis('off')
+        
+        plt.tight_layout()
+        save_path = os.path.join(save_dir, f'{model_name.lower().replace("-", "_")}_interpretability.png')
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"✅ Saved: {save_path}")
+
+# Cell 8: 集成预测函数
 def load_trained_models(model_paths):
     """加载训练好的模型"""
     models_dict = {}
@@ -366,7 +768,7 @@ def calculate_model_weights(model_results, weight_method='accuracy'):
     
     return weights
 
-# Cell 8: 加载数据
+# Cell 9: 加载数据
 print("📂 加载数据集...")
 train_df = create_dataframe(TRAIN_PATH, "训练")
 val_df = create_dataframe(VAL_PATH, "验证")
@@ -398,7 +800,7 @@ val_dataset = DeepfakeDataset(val_df, transform=val_transform)
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
-# Cell 9: 训练所有模型
+# Cell 10: 训练所有模型
 print("\n🚀 开始训练多个模型...")
 
 # 选择要训练的模型（可以根据需要调整）
@@ -410,48 +812,23 @@ for model_key in selected_models:
     save_path = f"best_{model_key}_model.pth"
     model_paths[model_key] = save_path
     
-    best_acc, train_losses, val_losses, val_accs = train_single_model(
+    # 使用新的训练函数返回格式
+    model_results[model_key] = train_single_model(
         model_key, train_loader, val_loader, save_path
     )
     
-    model_results[model_key] = {
-        'best_acc': best_acc,
-        'train_losses': train_losses,
-        'val_losses': val_losses,
-        'val_accuracies': val_accs
-    }
+    print(f"✅ {MODEL_CONFIGS[model_key]['name']} 训练完成，最佳验证准确率: {model_results[model_key]['best_acc']:.4f}")
     
-    print(f"✅ {MODEL_CONFIGS[model_key]['name']} 训练完成，最佳验证准确率: {best_acc:.4f}")
+    # 清理GPU内存
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        gc.collect()
 
-# Cell 10: 可视化训练过程
-fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-fig.suptitle('多模型训练过程', fontsize=16)
+# Cell 11: 增强训练历史可视化
+print("\n📊 生成训练历史可视化...")
+plot_training_history(model_results)
 
-for idx, (model_key, results) in enumerate(model_results.items()):
-    row = idx // 2
-    col = idx % 2
-    
-    ax = axes[row, col]
-    epochs = range(1, len(results['train_losses']) + 1)
-    
-    ax.plot(epochs, results['train_losses'], 'b-', label='Train Loss')
-    ax.plot(epochs, results['val_losses'], 'r-', label='Val Loss')
-    ax.set_title(f"{MODEL_CONFIGS[model_key]['name']}")
-    ax.set_xlabel('Epoch')
-    ax.set_ylabel('Loss')
-    ax.legend()
-    ax.grid(True)
-
-# 如果模型数量少于4个，隐藏多余的子图
-for idx in range(len(model_results), 4):
-    row = idx // 2
-    col = idx % 2
-    axes[row, col].set_visible(False)
-
-plt.tight_layout()
-plt.show()
-
-# Cell 11: 集成预测和评估
+# Cell 12: 集成预测和评估
 print("\n🔮 开始集成预测...")
 
 # 加载训练好的模型
@@ -482,7 +859,7 @@ weighted_predictions, _, _ = ensemble_predict(trained_models, val_loader, voting
 weighted_accuracy = accuracy_score(true_labels, weighted_predictions)
 print(f"加权投票准确率: {weighted_accuracy:.4f}")
 
-# Cell 12: 结果对比和可视化
+# Cell 13: 结果对比和可视化
 # 单模型结果对比
 print("\n📈 模型性能对比:")
 print("="*50)
@@ -494,37 +871,13 @@ print(f"{'软投票集成':15}: {soft_accuracy:.4f}")
 print(f"{'硬投票集成':15}: {hard_accuracy:.4f}")
 print(f"{'加权投票集成':15}: {weighted_accuracy:.4f}")
 
-# 混淆矩阵可视化
-fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+# 增强混淆矩阵可视化
+print("\n📊 生成混淆矩阵可视化...")
+plot_confusion_matrix(true_labels, soft_predictions, "Soft Voting Ensemble", "soft_voting")
+plot_confusion_matrix(true_labels, hard_predictions, "Hard Voting Ensemble", "hard_voting")
+plot_confusion_matrix(true_labels, weighted_predictions, "Weighted Voting Ensemble", "weighted_voting")
 
-# 软投票混淆矩阵
-cm_soft = confusion_matrix(true_labels, soft_predictions)
-sns.heatmap(cm_soft, annot=True, fmt="d", cmap="Blues", 
-            xticklabels=classes, yticklabels=classes, ax=axes[0])
-axes[0].set_title(f"软投票混淆矩阵\n准确率: {soft_accuracy:.4f}")
-axes[0].set_ylabel("真实标签")
-axes[0].set_xlabel("预测标签")
-
-# 硬投票混淆矩阵
-cm_hard = confusion_matrix(true_labels, hard_predictions)
-sns.heatmap(cm_hard, annot=True, fmt="d", cmap="Greens", 
-            xticklabels=classes, yticklabels=classes, ax=axes[1])
-axes[1].set_title(f"硬投票混淆矩阵\n准确率: {hard_accuracy:.4f}")
-axes[1].set_ylabel("真实标签")
-axes[1].set_xlabel("预测标签")
-
-# 加权投票混淆矩阵
-cm_weighted = confusion_matrix(true_labels, weighted_predictions)
-sns.heatmap(cm_weighted, annot=True, fmt="d", cmap="Oranges", 
-            xticklabels=classes, yticklabels=classes, ax=axes[2])
-axes[2].set_title(f"加权投票混淆矩阵\n准确率: {weighted_accuracy:.4f}")
-axes[2].set_ylabel("真实标签")
-axes[2].set_xlabel("预测标签")
-
-plt.tight_layout()
-plt.show()
-
-# Cell 13: 详细分类报告
+# Cell 14: 详细分类报告
 print("\n📋 软投票详细分类报告:")
 print("="*50)
 print(classification_report(true_labels, soft_predictions, target_names=classes))
@@ -537,7 +890,14 @@ print("\n📋 加权投票详细分类报告:")
 print("="*50)
 print(classification_report(true_labels, weighted_predictions, target_names=classes))
 
-# Cell 14: 最终总结
+# Cell 15: 集成分析和解释性可视化
+print("\n📊 生成集成分析可视化...")
+plot_ensemble_analysis(trained_models, val_loader, device)
+
+print("\n📊 生成模型解释性分析...")
+plot_interpretability_analysis(trained_models, val_loader, device)
+
+# Cell 16: 最终总结
 print("\n" + "="*60)
 print("🎉 多模型集成训练完成！")
 print("="*60)
