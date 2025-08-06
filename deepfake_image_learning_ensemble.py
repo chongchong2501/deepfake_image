@@ -50,7 +50,7 @@ print(f"PyTorch Version: {torch.__version__}")
 print(f"Captum Available: {CAPTUM_AVAILABLE}")
 
 # Cell 2: 参数配置
-BASE_PATH = r'E:\program\deepfake_image\Dataset'
+BASE_PATH = '/kaggle/input/deepfake-and-real-images/Dataset'
 TRAIN_PATH = os.path.join(BASE_PATH, 'Train')
 VAL_PATH = os.path.join(BASE_PATH, 'Validation')
 
