@@ -28,7 +28,7 @@ print(f"PyTorch版本: {torch.__version__}")
 
 # Cell 2: 参数配置
 # Kaggle环境路径
-BASE_PATH = '/kaggle/input/deepfake-and-real-images/Dataset'
+BASE_PATH = 'E:\program\deepfake_image\Dataset'
 TRAIN_PATH = os.path.join(BASE_PATH, 'Train')
 VAL_PATH = os.path.join(BASE_PATH, 'Validation')
 
@@ -43,33 +43,36 @@ BATCH_SIZE = 32
 LEARNING_RATE = 1e-4
 
 # 训练轮数
-EPOCHS = 15
+EPOCHS = 30
 
 # 权重衰减系数
 WEIGHT_DECAY = 1e-4
 
 # 早停轮数
-PATIENCE = 4
+PATIENCE = 5
 
-# 多GPU设置
-NUM_GPUS = torch.cuda.device_count()
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"使用设备: {DEVICE}")
-if torch.cuda.is_available():
-    if NUM_GPUS > 1:
-        print(f"使用多GPU训练: {[torch.cuda.get_device_name(i) for i in range(NUM_GPUS)]}")
-        print(f"GPU数量: {NUM_GPUS}")
-        NUM_WORKERS = 4  # 多GPU时增加数据加载线程
-    else:
-        print(f"GPU: {torch.cuda.get_device_name(0)}")
-        NUM_WORKERS = 0  # 单GPU时避免多进程问题
+# 数据加载器的工作进程数量
+NUM_WORKERS = 24
+
+# # 多GPU设置
+# NUM_GPUS = torch.cuda.device_count()
+# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# print(f"使用设备: {DEVICE}")
+# if torch.cuda.is_available():
+#     if NUM_GPUS > 1:
+#         print(f"使用多GPU训练: {[torch.cuda.get_device_name(i) for i in range(NUM_GPUS)]}")
+#         print(f"GPU数量: {NUM_GPUS}")
+#         NUM_WORKERS = 4  # 多GPU时增加数据加载线程
+#     else:
+#         print(f"GPU: {torch.cuda.get_device_name(0)}")
+#         NUM_WORKERS = 0  # 单GPU时避免多进程问题
     
-    for i in range(NUM_GPUS):
-        print(f"GPU {i}: {torch.cuda.get_device_name(i)}")
-        print(f"GPU {i} 内存: {torch.cuda.get_device_properties(i).total_memory / 1024**3:.1f}GB")
-else:
-    NUM_WORKERS = 0
-    print("使用CPU训练")
+#     for i in range(NUM_GPUS):
+#         print(f"GPU {i}: {torch.cuda.get_device_name(i)}")
+#         print(f"GPU {i} 内存: {torch.cuda.get_device_properties(i).total_memory / 1024**3:.1f}GB")
+# else:
+#     NUM_WORKERS = 0
+#     print("使用CPU训练")
 
 
 

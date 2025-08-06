@@ -34,22 +34,17 @@ if not hasattr(torch, '_deepfake_initialized'):
 
 # Cell 2: 参数配置 (本地优化)
 # 本地数据路径 - 请根据实际情况修改
-BASE_PATH = r'E:\program\deepfake_image\Dataset'  # 修改为你的数据集路径
+BASE_PATH = r'E:\program\deepfake_image\Dataset'
 TRAIN_PATH = os.path.join(BASE_PATH, 'Train')
 VAL_PATH = os.path.join(BASE_PATH, 'Validation')
 
-# 训练参数 (针对8GB显存优化 - 提升GPU利用率)
-# 高GPU利用率模式 - 如果显存不足可以降低这些参数
-HIGH_GPU_UTILIZATION = True  # 设置为False可降低显存使用
-
-
 IMG_SIZE = 256 
-BATCH_SIZE = 28  
+BATCH_SIZE = 32  
 LEARNING_RATE = 1e-4
-EPOCHS = 15
+EPOCHS = 30
 WEIGHT_DECAY = 1e-4
-PATIENCE = 4  # 使用原版早停耐心
-NUM_WORKERS = 4
+PATIENCE = 5
+NUM_WORKERS = 6
 
 # GPU设置
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
