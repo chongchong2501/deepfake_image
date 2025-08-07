@@ -38,13 +38,18 @@ BASE_PATH = r'E:\program\deepfake_image\Dataset'
 TRAIN_PATH = os.path.join(BASE_PATH, 'Train')
 VAL_PATH = os.path.join(BASE_PATH, 'Validation')
 
-IMG_SIZE = 256 
-BATCH_SIZE = 32  
-LEARNING_RATE = 1e-4
-EPOCHS = 30
-WEIGHT_DECAY = 1e-4
-PATIENCE = 5
-NUM_WORKERS = 6
+# 图像大小设置
+IMG_SIZE = 256  # 输入图像尺寸
+
+# 训练超参数
+BATCH_SIZE = 32  # 批次大小
+LEARNING_RATE = 1e-4  # 学习率
+EPOCHS = 30  # 训练轮数
+WEIGHT_DECAY = 1e-4  # 权重衰减系数
+PATIENCE = 5  # 早停轮数
+
+# 数据加载设置
+NUM_WORKERS = 6  # 数据加载线程数
 
 # GPU设置
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
