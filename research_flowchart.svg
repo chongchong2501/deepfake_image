@@ -1,0 +1,140 @@
+<svg id="flowchart-svg" width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Research Flowchart SVG Content -->
+                    <defs>
+                        <style>
+                            .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #2c3e50; }
+                            .subtitle { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #34495e; }
+                            .text { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
+                            .small-text { font-family: Arial, sans-serif; font-size: 10px; fill: #7f8c8d; }
+                            .box { fill: #ecf0f1; stroke: #34495e; stroke-width: 2; rx: 8; ry: 8; }
+                            .data-box { fill: #e8f5e8; stroke: #27ae60; stroke-width: 2; rx: 8; ry: 8; }
+                            .model-box { fill: #e8f4fd; stroke: #3498db; stroke-width: 2; rx: 8; ry: 8; }
+                            .ensemble-box { fill: #fdf2e8; stroke: #e67e22; stroke-width: 2; rx: 8; ry: 8; }
+                            .result-box { fill: #f8e8f8; stroke: #9b59b6; stroke-width: 2; rx: 8; ry: 8; }
+                            .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+                            .flow-arrow { stroke: #e74c3c; stroke-width: 3; fill: none; marker-end: url(#redarrowhead); }
+                        </style>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#34495e"/>
+                        </marker>
+                        <marker id="redarrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c"/>
+                        </marker>
+                    </defs>
+                    
+                    <!-- Title -->
+                    <text x="600" y="30" text-anchor="middle" class="title">Deepfake Image Detection Research Flowchart</text>
+                    
+                    <!-- Data Preprocessing Stage -->
+                    <rect x="50" y="70" width="200" height="120" class="data-box"/>
+                    <text x="150" y="95" text-anchor="middle" class="subtitle">Data Preprocessing</text>
+                    <text x="60" y="115" class="text">• Load Dataset (140K train, 25K val)</text>
+                    <text x="60" y="130" class="text">• Image Resize (256×256)</text>
+                    <text x="60" y="145" class="text">• Data Augmentation:</text>
+                    <text x="70" y="160" class="small-text">- Horizontal Flip, Rotation</text>
+                    <text x="70" y="175" class="small-text">- Color Jitter, Affine Transform</text>
+                    
+                    <!-- Model Architecture Stage -->
+                    <rect x="300" y="70" width="600" height="120" class="model-box"/>
+                    <text x="600" y="95" text-anchor="middle" class="subtitle">Multi-Model Architecture</text>
+                    
+                    <!-- Individual Models -->
+                    <rect x="320" y="110" width="150" height="70" class="box"/>
+                    <text x="395" y="130" text-anchor="middle" class="text">EfficientNet-B0</text>
+                    <text x="395" y="145" text-anchor="middle" class="small-text">ImageNet Pretrained</text>
+                    <text x="395" y="160" text-anchor="middle" class="small-text">2-class Classification</text>
+                    
+                    <rect x="490" y="110" width="150" height="70" class="box"/>
+                    <text x="565" y="130" text-anchor="middle" class="text">ResNet-18</text>
+                    <text x="565" y="145" text-anchor="middle" class="small-text">ImageNet Pretrained</text>
+                    <text x="565" y="160" text-anchor="middle" class="small-text">2-class Classification</text>
+                    
+                    <rect x="660" y="110" width="150" height="70" class="box"/>
+                    <text x="735" y="130" text-anchor="middle" class="text">ConvNeXt-Tiny</text>
+                    <text x="735" y="145" text-anchor="middle" class="small-text">ImageNet Pretrained</text>
+                    <text x="735" y="160" text-anchor="middle" class="small-text">2-class Classification</text>
+                    
+                    <!-- Training Configuration -->
+                    <rect x="950" y="70" width="200" height="120" class="box"/>
+                    <text x="1050" y="95" text-anchor="middle" class="subtitle">Training Config</text>
+                    <text x="960" y="115" class="text">• Batch Size: 96</text>
+                    <text x="960" y="130" class="text">• Learning Rate: 1e-4</text>
+                    <text x="960" y="145" class="text">• Epochs: 15</text>
+                    <text x="960" y="160" class="text">• AMP: Enabled</text>
+                    <text x="960" y="175" class="text">• Multi-GPU: 2×Tesla T4</text>
+                    
+                    <!-- Training Process -->
+                    <rect x="50" y="230" width="300" height="100" class="box"/>
+                    <text x="200" y="255" text-anchor="middle" class="subtitle">Training Process</text>
+                    <text x="60" y="275" class="text">• CrossEntropyLoss + Adam Optimizer</text>
+                    <text x="60" y="290" class="text">• ReduceLROnPlateau Scheduler</text>
+                    <text x="60" y="305" class="text">• Early Stopping (patience=4)</text>
+                    <text x="60" y="320" class="text">• Best Model Selection by Val Accuracy</text>
+                    
+                    <!-- Model Evaluation -->
+                    <rect x="400" y="230" width="300" height="100" class="box"/>
+                    <text x="550" y="255" text-anchor="middle" class="subtitle">Model Evaluation</text>
+                    <text x="410" y="275" class="text">• Accuracy, F1-Score Tracking</text>
+                    <text x="410" y="290" class="text">• Confusion Matrix Analysis</text>
+                    <text x="410" y="305" class="text">• Training History Visualization</text>
+                    <text x="410" y="320" class="text">• GPU Memory Monitoring</text>
+                    
+                    <!-- Interpretability Analysis -->
+                    <rect x="750" y="230" width="300" height="100" class="box"/>
+                    <text x="900" y="255" text-anchor="middle" class="subtitle">Interpretability</text>
+                    <text x="760" y="275" class="text">• Integrated Gradients (Captum)</text>
+                    <text x="760" y="290" class="text">• Feature Attribution Maps</text>
+                    <text x="760" y="305" class="text">• Model Decision Visualization</text>
+                    <text x="760" y="320" class="text">• Enhanced Heatmap Generation</text>
+                    
+                    <!-- Ensemble Learning -->
+                    <rect x="200" y="370" width="800" height="120" class="ensemble-box"/>
+                    <text x="600" y="395" text-anchor="middle" class="subtitle">Ensemble Learning Strategy</text>
+                    
+                    <!-- Voting Methods -->
+                    <rect x="220" y="410" width="180" height="70" class="box"/>
+                    <text x="310" y="430" text-anchor="middle" class="text">Soft Voting</text>
+                    <text x="310" y="445" text-anchor="middle" class="small-text">Average Probabilities</text>
+                    <text x="310" y="460" text-anchor="middle" class="small-text">Ensemble Prediction</text>
+                    
+                    <rect x="420" y="410" width="180" height="70" class="box"/>
+                    <text x="510" y="430" text-anchor="middle" class="text">Weighted Voting</text>
+                    <text x="510" y="445" text-anchor="middle" class="small-text">Accuracy-based Weights</text>
+                    <text x="510" y="460" text-anchor="middle" class="small-text">Softmax Normalization</text>
+                    
+                    <rect x="620" y="410" width="180" height="70" class="box"/>
+                    <text x="710" y="430" text-anchor="middle" class="text">Hard Voting</text>
+                    <text x="710" y="445" text-anchor="middle" class="small-text">Majority Vote</text>
+                    <text x="710" y="460" text-anchor="middle" class="small-text">Class Prediction</text>
+                    
+                    <rect x="820" y="410" width="160" height="70" class="box"/>
+                    <text x="900" y="430" text-anchor="middle" class="text">Consistency</text>
+                    <text x="900" y="445" text-anchor="middle" class="small-text">Model Agreement</text>
+                    <text x="900" y="460" text-anchor="middle" class="small-text">Heatmap Analysis</text>
+                    
+                    <!-- Final Results -->
+                    <rect x="300" y="530" width="600" height="100" class="result-box"/>
+                    <text x="600" y="555" text-anchor="middle" class="subtitle">Performance Analysis &amp; Results</text>
+                    <text x="310" y="575" class="text">• Individual Model Performance Comparison</text>
+                    <text x="310" y="590" class="text">• Ensemble vs Single Model Accuracy</text>
+                    <text x="310" y="605" class="text">• Confidence Distribution Analysis</text>
+                    <text x="310" y="620" class="text">• Class-wise F1-Score Evaluation</text>
+                    
+                    <!-- Visualization Outputs -->
+                    <rect x="50" y="670" width="1100" height="80" class="box"/>
+                    <text x="600" y="695" text-anchor="middle" class="subtitle">Visualization Outputs</text>
+                    <text x="60" y="715" class="text">• Training History Plots • Confusion Matrices • Data Augmentation Effects • Model Interpretability Maps</text>
+                    <text x="60" y="730" class="text">• Ensemble Analysis Charts • Consistency Heatmaps • Confidence Distributions • Performance Comparisons</text>
+                    
+                    <!-- Flow Arrows -->
+                    <line x1="250" y1="130" x2="300" y2="130" class="flow-arrow"/>
+                    <line x1="900" y1="130" x2="950" y2="130" class="flow-arrow"/>
+                    <line x1="150" y1="190" x2="150" y2="230" class="flow-arrow"/>
+                    <line x1="200" y1="230" x2="200" y2="190" class="arrow"/>
+                    <line x1="350" y1="230" x2="450" y2="190" class="arrow"/>
+                    <line x1="550" y1="230" x2="650" y2="190" class="arrow"/>
+                    <line x1="700" y1="230" x2="800" y2="190" class="arrow"/>
+                    <line x1="600" y1="330" x2="600" y2="370" class="flow-arrow"/>
+                    <line x1="600" y1="490" x2="600" y2="530" class="flow-arrow"/>
+                    <line x1="600" y1="630" x2="600" y2="670" class="flow-arrow"/>
+                </svg>

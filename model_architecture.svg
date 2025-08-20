@@ -1,0 +1,228 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #2c3e50; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #34495e; }
+      .text { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
+      .small-text { font-family: Arial, sans-serif; font-size: 10px; fill: #7f8c8d; }
+      .tiny-text { font-family: Arial, sans-serif; font-size: 9px; fill: #95a5a6; }
+      .input-box { fill: #e8f5e8; stroke: #27ae60; stroke-width: 2; rx: 8; ry: 8; }
+      .model-box { fill: #e8f4fd; stroke: #3498db; stroke-width: 2; rx: 8; ry: 8; }
+      .feature-box { fill: #fff3cd; stroke: #ffc107; stroke-width: 2; rx: 6; ry: 6; }
+      .ensemble-box { fill: #fdf2e8; stroke: #e67e22; stroke-width: 2; rx: 8; ry: 8; }
+      .output-box { fill: #f8e8f8; stroke: #9b59b6; stroke-width: 2; rx: 8; ry: 8; }
+      .layer-box { fill: #f8f9fa; stroke: #6c757d; stroke-width: 1; rx: 4; ry: 4; }
+      .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .data-flow { stroke: #e74c3c; stroke-width: 3; fill: none; marker-end: url(#redarrowhead); }
+      .ensemble-flow { stroke: #e67e22; stroke-width: 3; fill: none; marker-end: url(#orangearrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34495e" />
+    </marker>
+    <marker id="redarrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c" />
+    </marker>
+    <marker id="orangearrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e67e22" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" class="title">Ensemble Learning Model Architecture</text>
+  
+  <!-- Input Layer -->
+  <rect x="50" y="70" width="200" height="100" class="input-box"/>
+  <text x="150" y="95" text-anchor="middle" class="subtitle">Input Images</text>
+  <text x="150" y="115" text-anchor="middle" class="text">256 × 256 × 3</text>
+  <text x="150" y="130" text-anchor="middle" class="small-text">RGB Images</text>
+  <text x="150" y="145" text-anchor="middle" class="small-text">Batch Size: 96</text>
+  <text x="150" y="160" text-anchor="middle" class="tiny-text">Real/Fake Classification</text>
+  
+  <!-- Data Augmentation -->
+  <rect x="300" y="70" width="180" height="100" class="feature-box"/>
+  <text x="390" y="95" text-anchor="middle" class="subtitle">Data Augmentation</text>
+  <text x="310" y="115" class="small-text">• Horizontal Flip (p=0.5)</text>
+  <text x="310" y="130" class="small-text">• Random Rotation (±15°)</text>
+  <text x="310" y="145" class="small-text">• Color Jitter</text>
+  <text x="310" y="160" class="small-text">• Affine Transform</text>
+  
+  <!-- Model 1: EfficientNet-B0 -->
+  <rect x="50" y="220" width="350" height="180" class="model-box"/>
+  <text x="225" y="245" text-anchor="middle" class="subtitle">EfficientNet-B0</text>
+  
+  <!-- EfficientNet Layers -->
+  <rect x="70" y="260" width="80" height="30" class="layer-box"/>
+  <text x="110" y="280" text-anchor="middle" class="tiny-text">Stem Conv</text>
+  
+  <rect x="160" y="260" width="80" height="30" class="layer-box"/>
+  <text x="200" y="280" text-anchor="middle" class="tiny-text">MBConv Blocks</text>
+  
+  <rect x="250" y="260" width="80" height="30" class="layer-box"/>
+  <text x="290" y="280" text-anchor="middle" class="tiny-text">Head Conv</text>
+  
+  <rect x="70" y="300" width="100" height="30" class="layer-box"/>
+  <text x="120" y="320" text-anchor="middle" class="tiny-text">Global Avg Pool</text>
+  
+  <rect x="180" y="300" width="100" height="30" class="layer-box"/>
+  <text x="230" y="320" text-anchor="middle" class="tiny-text">Dropout (0.2)</text>
+  
+  <rect x="290" y="300" width="80" height="30" class="layer-box"/>
+  <text x="330" y="320" text-anchor="middle" class="tiny-text">FC (2 classes)</text>
+  
+  <text x="70" y="350" class="small-text">• ImageNet Pretrained</text>
+  <text x="70" y="365" class="small-text">• Parameters: ~5.3M</text>
+  <text x="70" y="380" class="small-text">• Compound Scaling</text>
+  
+  <!-- Model 2: ResNet-18 -->
+  <rect x="450" y="220" width="350" height="180" class="model-box"/>
+  <text x="625" y="245" text-anchor="middle" class="subtitle">ResNet-18</text>
+  
+  <!-- ResNet Layers -->
+  <rect x="470" y="260" width="70" height="30" class="layer-box"/>
+  <text x="505" y="280" text-anchor="middle" class="tiny-text">Conv1</text>
+  
+  <rect x="550" y="260" width="70" height="30" class="layer-box"/>
+  <text x="585" y="280" text-anchor="middle" class="tiny-text">Layer1</text>
+  
+  <rect x="630" y="260" width="70" height="30" class="layer-box"/>
+  <text x="665" y="280" text-anchor="middle" class="tiny-text">Layer2</text>
+  
+  <rect x="710" y="260" width="70" height="30" class="layer-box"/>
+  <text x="745" y="280" text-anchor="middle" class="tiny-text">Layer3</text>
+  
+  <rect x="470" y="300" width="70" height="30" class="layer-box"/>
+  <text x="505" y="320" text-anchor="middle" class="tiny-text">Layer4</text>
+  
+  <rect x="550" y="300" width="100" height="30" class="layer-box"/>
+  <text x="600" y="320" text-anchor="middle" class="tiny-text">Avg Pool</text>
+  
+  <rect x="660" y="300" width="80" height="30" class="layer-box"/>
+  <text x="700" y="320" text-anchor="middle" class="tiny-text">FC (2 classes)</text>
+  
+  <text x="470" y="350" class="small-text">• ImageNet Pretrained</text>
+  <text x="470" y="365" class="small-text">• Parameters: ~11.7M</text>
+  <text x="470" y="380" class="small-text">• Residual Connections</text>
+  
+  <!-- Model 3: ConvNeXt-Tiny -->
+  <rect x="850" y="220" width="350" height="180" class="model-box"/>
+  <text x="1025" y="245" text-anchor="middle" class="subtitle">ConvNeXt-Tiny</text>
+  
+  <!-- ConvNeXt Layers -->
+  <rect x="870" y="260" width="70" height="30" class="layer-box"/>
+  <text x="905" y="280" text-anchor="middle" class="tiny-text">Stem</text>
+  
+  <rect x="950" y="260" width="70" height="30" class="layer-box"/>
+  <text x="985" y="280" text-anchor="middle" class="tiny-text">Stage1</text>
+  
+  <rect x="1030" y="260" width="70" height="30" class="layer-box"/>
+  <text x="1065" y="280" text-anchor="middle" class="tiny-text">Stage2</text>
+  
+  <rect x="1110" y="260" width="70" height="30" class="layer-box"/>
+  <text x="1145" y="280" text-anchor="middle" class="tiny-text">Stage3</text>
+  
+  <rect x="870" y="300" width="70" height="30" class="layer-box"/>
+  <text x="905" y="320" text-anchor="middle" class="tiny-text">Stage4</text>
+  
+  <rect x="950" y="300" width="100" height="30" class="layer-box"/>
+  <text x="1000" y="320" text-anchor="middle" class="tiny-text">Global Avg Pool</text>
+  
+  <rect x="1060" y="300" width="80" height="30" class="layer-box"/>
+  <text x="1100" y="320" text-anchor="middle" class="tiny-text">FC (2 classes)</text>
+  
+  <text x="870" y="350" class="small-text">• ImageNet Pretrained</text>
+  <text x="870" y="365" class="small-text">• Parameters: ~28.6M</text>
+  <text x="870" y="380" class="small-text">• Modern CNN Design</text>
+  
+  <!-- Feature Extraction -->
+  <rect x="200" y="450" width="150" height="60" class="feature-box"/>
+  <text x="275" y="470" text-anchor="middle" class="text">Features 1</text>
+  <text x="275" y="485" text-anchor="middle" class="small-text">EfficientNet</text>
+  <text x="275" y="500" text-anchor="middle" class="small-text">Logits</text>
+  
+  <rect x="500" y="450" width="150" height="60" class="feature-box"/>
+  <text x="575" y="470" text-anchor="middle" class="text">Features 2</text>
+  <text x="575" y="485" text-anchor="middle" class="small-text">ResNet</text>
+  <text x="575" y="500" text-anchor="middle" class="small-text">Logits</text>
+  
+  <rect x="800" y="450" width="150" height="60" class="feature-box"/>
+  <text x="875" y="470" text-anchor="middle" class="text">Features 3</text>
+  <text x="875" y="485" text-anchor="middle" class="small-text">ConvNeXt</text>
+  <text x="875" y="500" text-anchor="middle" class="small-text">Logits</text>
+  
+  <!-- Ensemble Layer -->
+  <rect x="400" y="560" width="500" height="120" class="ensemble-box"/>
+  <text x="650" y="585" text-anchor="middle" class="subtitle">Ensemble Learning Module</text>
+  
+  <!-- Voting Strategies -->
+  <rect x="420" y="600" width="120" height="60" class="layer-box"/>
+  <text x="480" y="620" text-anchor="middle" class="small-text">Soft Voting</text>
+  <text x="480" y="635" text-anchor="middle" class="tiny-text">Average</text>
+  <text x="480" y="650" text-anchor="middle" class="tiny-text">Probabilities</text>
+  
+  <rect x="560" y="600" width="120" height="60" class="layer-box"/>
+  <text x="620" y="620" text-anchor="middle" class="small-text">Weighted Voting</text>
+  <text x="620" y="635" text-anchor="middle" class="tiny-text">Accuracy-based</text>
+  <text x="620" y="650" text-anchor="middle" class="tiny-text">Weights</text>
+  
+  <rect x="700" y="600" width="120" height="60" class="layer-box"/>
+  <text x="760" y="620" text-anchor="middle" class="small-text">Hard Voting</text>
+  <text x="760" y="635" text-anchor="middle" class="tiny-text">Majority</text>
+  <text x="760" y="650" text-anchor="middle" class="tiny-text">Decision</text>
+  
+  <!-- Final Output -->
+  <rect x="500" y="720" width="300" height="80" class="output-box"/>
+  <text x="650" y="745" text-anchor="middle" class="subtitle">Final Prediction</text>
+  <text x="650" y="765" text-anchor="middle" class="text">Class: Real / Fake</text>
+  <text x="650" y="780" text-anchor="middle" class="small-text">Confidence Score</text>
+  <text x="650" y="795" text-anchor="middle" class="small-text">Ensemble Probability</text>
+  
+  <!-- Training Configuration -->
+  <rect x="1250" y="70" width="130" height="150" class="feature-box"/>
+  <text x="1315" y="95" text-anchor="middle" class="subtitle">Training</text>
+  <text x="1260" y="115" class="small-text">• Loss: CrossEntropy</text>
+  <text x="1260" y="130" class="small-text">• Optimizer: Adam</text>
+  <text x="1260" y="145" class="small-text">• LR: 1e-4</text>
+  <text x="1260" y="160" class="small-text">• Scheduler: Plateau</text>
+  <text x="1260" y="175" class="small-text">• AMP: Enabled</text>
+  <text x="1260" y="190" class="small-text">• Early Stopping</text>
+  <text x="1260" y="205" class="small-text">• Multi-GPU</text>
+  
+  <!-- Performance Metrics -->
+  <rect x="1050" y="560" width="300" height="120" class="output-box"/>
+  <text x="1200" y="585" text-anchor="middle" class="subtitle">Performance Metrics</text>
+  <text x="1060" y="605" class="small-text">• Accuracy: Individual vs Ensemble</text>
+  <text x="1060" y="620" class="small-text">• F1-Score: Per Class Analysis</text>
+  <text x="1060" y="635" class="small-text">• Confusion Matrix</text>
+  <text x="1060" y="650" class="small-text">• Model Consistency Heatmap</text>
+  <text x="1060" y="665" class="small-text">• Confidence Distribution</text>
+  
+  <!-- Data Flow Arrows -->
+  <line x1="250" y1="120" x2="300" y2="120" class="data-flow"/>
+  <line x1="480" y1="120" x2="530" y2="120" class="data-flow"/>
+  
+  <!-- Input to Models -->
+  <line x1="150" y1="170" x2="150" y2="220" class="data-flow"/>
+  <line x1="150" y1="200" x2="225" y2="220" class="arrow"/>
+  <line x1="150" y1="200" x2="625" y2="220" class="arrow"/>
+  <line x1="150" y1="200" x2="1025" y2="220" class="arrow"/>
+  
+  <!-- Models to Features -->
+  <line x1="225" y1="400" x2="275" y2="450" class="data-flow"/>
+  <line x1="625" y1="400" x2="575" y2="450" class="data-flow"/>
+  <line x1="1025" y1="400" x2="875" y2="450" class="data-flow"/>
+  
+  <!-- Features to Ensemble -->
+  <line x1="275" y1="510" x2="480" y2="560" class="ensemble-flow"/>
+  <line x1="575" y1="510" x2="620" y2="560" class="ensemble-flow"/>
+  <line x1="875" y1="510" x2="760" y2="560" class="ensemble-flow"/>
+  
+  <!-- Ensemble to Output -->
+  <line x1="650" y1="680" x2="650" y2="720" class="data-flow"/>
+  
+  <!-- Architecture Details -->
+  <rect x="50" y="820" width="1300" height="60" class="layer-box"/>
+  <text x="700" y="840" text-anchor="middle" class="subtitle">Architecture Highlights</text>
+  <text x="60" y="860" class="text">• Multi-GPU Training with DataParallel • AMP Mixed Precision for Speed • Transfer Learning from ImageNet • Ensemble Voting Strategies</text>
+  <text x="60" y="875" class="text">• Real-time Interpretability with Integrated Gradients • Model Consistency Analysis • Confidence-based Prediction Filtering</text>
+  
+</svg>

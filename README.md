@@ -2,11 +2,18 @@
 
 基于多架构卷积网络的多模型集成深伪图像检测系统，内置软投票、硬投票与加权投票三种策略，支持 AMP 混合精度与 Captum 可解释性分析，可在本地（Windows 单 GPU）与 Kaggle（双 T4 GPU）稳定运行。
 
+## 可视化总览（英文图示，可实时编辑）
+- 研究流程图（Research Flowchart）  
+  ![Research Flowchart](./research_flowchart.svg)
+- 模型架构图（Model Architecture）  
+  ![Model Architecture](./model_architecture.svg)
+- 交互式可编辑版本（可缩放/拖拽/全屏/下载SVG）：[interactive_diagrams.html](./interactive_diagrams.html)
+
 ## 功能特性
 - 多模型：EfficientNet、ResNet、ConvNeXt 等，可灵活扩展
-- 三种集成：Soft/Hard/Weighted Voting，权重可按验证集性能自动计算
-- 可解释性：集成 Captum（Integrated Gradients、Grad-CAM）可视化关键区域
-- 性能优化：AMP 混合精度、早停、可选学习率调度、显存清理
+- 三种集成：Soft/Hard/Weighted Voting（支持基于验证集性能自动计算权重）
+- 可解释性：Captum（Integrated Gradients 等）可视化关键区域
+- 性能优化：AMP 混合精度、早停、学习率调度（Plateau）、显存清理
 - 跨环境：本地脚本/Notebook 与 Kaggle Notebook 双方案
 
 ## 目录结构（简要）
@@ -14,6 +21,8 @@
 - deepfake-image-learning-ensemble_kaggle.ipynb（Kaggle Notebook）
 - deepfake-image_learning.ipynb（单模型示例 Notebook）
 - deepfake_image_learning_ensemble_local.py（本地脚本入口）
+- research_flowchart.svg、model_architecture.svg（项目图示）
+- interactive_diagrams.html（交互式图示页面）
 - works/models/（训练产出模型存放）
 - 历史训练数据/（历史实验与模型归档）
 
@@ -43,13 +52,15 @@ Dataset/
 - 本地：打开 deepfake-image-learning-ensemble_Laptop.ipynb，逐 Cell 运行
 - Kaggle：打开 deepfake-image-learning-ensemble_kaggle.ipynb，按提示设置 BASE_PATH 与参数后运行
 
+3) 可视化与交互
+- 直接查看 README 中嵌入的 SVG 图
+- 打开交互式页面以缩放/拖拽/全屏/下载：[interactive_diagrams.html](./interactive_diagrams.html)
+
 ## 关键参数（常用）
 - IMG_SIZE：输入图像尺寸（如 256）
 - BATCH_SIZE/VAL_BATCH_SIZE：批大小（按显存调整）
 - EPOCHS：训练轮数
-- NUM_WORKERS：DataLoader 进程数
-  - Windows+Notebook 环境建议设 0；若需 >0，推荐改用 .py 脚本运行
-  - Kaggle/类 Linux 环境可设 4~8 以提速
+- NUM_WORKERS：DataLoader 进程数（Windows+Notebook 建议 0；Kaggle/Linux 可 4~8）
 - USE_AMP：是否启用混合精度（GPU 推荐开启）
 
 ## 训练与评估
@@ -59,8 +70,7 @@ Dataset/
 
 ## 常见问题与建议
 - Windows 下 Notebook + num_workers>0 可能与 CUDA/多进程冲突导致不稳定；若遇到卡死/显存异常：
-  1) 将 NUM_WORKERS 设为 0；或
-  2) 使用 deepfake_image_learning_ensemble_local.py 以脚本方式运行再启用多进程
+  1) 将 NUM_WORKERS 设为 0；或 2) 使用 deepfake_image_learning_ensemble_local.py 以脚本方式运行再启用多进程
 - 显存不足：下调 BATCH_SIZE 或关闭部分数据增强；确保每个 epoch/训练结束已执行显存清理
 - 训练慢：开启 USE_AMP；在 Kaggle 将 NUM_WORKERS 提升至 4~8；适度增大 BATCH_SIZE
 

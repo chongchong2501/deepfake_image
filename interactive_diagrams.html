@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Detection Research Diagrams</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.3s ease;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+            color: #2c3e50;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .diagram-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+            overflow: auto;
+        }
+        
+        .diagram-container svg {
+            width: 100%;
+            height: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .controls h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #229954;
+        }
+        
+        .info-panel {
+            background: #e8f4fd;
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .info-panel h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        
+        .feature-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .feature-list li:before {
+            content: "✓";
+            color: #27ae60;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .zoom-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            padding: 10px;
+            z-index: 1000;
+        }
+        
+        .zoom-controls button {
+            display: block;
+            width: 40px;
+            height: 40px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .zoom-controls button:hover {
+            background: #2980b9;
+        }
+        
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Deepfake Detection Research</h1>
+            <p>Interactive Diagrams - Research Flowchart & Model Architecture</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('flowchart')">Research Flowchart</button>
+            <button class="tab" onclick="showTab('architecture')">Model Architecture</button>
+        </div>
+        
+        <div id="flowchart" class="tab-content active">
+            <div class="controls">
+                <h3>Flowchart Controls</h3>
+                <div class="control-group">
+                    <button class="btn-primary" onclick="downloadSVG('flowchart-svg', 'research_flowchart.svg')">Download SVG</button>
+                    <button class="btn-secondary" onclick="resetZoom('flowchart-svg')">Reset Zoom</button>
+                    <button class="btn-success" onclick="toggleFullscreen('flowchart-container')">Fullscreen</button>
+                </div>
+            </div>
+            
+            <div class="diagram-container" id="flowchart-container">
+                <svg id="flowchart-svg" width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Research Flowchart SVG Content -->
+                    <defs>
+                        <style>
+                            .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #2c3e50; }
+                            .subtitle { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #34495e; }
+                            .text { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
+                            .small-text { font-family: Arial, sans-serif; font-size: 10px; fill: #7f8c8d; }
+                            .box { fill: #ecf0f1; stroke: #34495e; stroke-width: 2; rx: 8; ry: 8; }
+                            .data-box { fill: #e8f5e8; stroke: #27ae60; stroke-width: 2; rx: 8; ry: 8; }
+                            .model-box { fill: #e8f4fd; stroke: #3498db; stroke-width: 2; rx: 8; ry: 8; }
+                            .ensemble-box { fill: #fdf2e8; stroke: #e67e22; stroke-width: 2; rx: 8; ry: 8; }
+                            .result-box { fill: #f8e8f8; stroke: #9b59b6; stroke-width: 2; rx: 8; ry: 8; }
+                            .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+                            .flow-arrow { stroke: #e74c3c; stroke-width: 3; fill: none; marker-end: url(#redarrowhead); }
+                        </style>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#34495e" />
+                        </marker>
+                        <marker id="redarrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c" />
+                        </marker>
+                    </defs>
+                    
+                    <!-- Title -->
+                    <text x="600" y="30" text-anchor="middle" class="title">Deepfake Image Detection Research Flowchart</text>
+                    
+                    <!-- Data Preprocessing Stage -->
+                    <rect x="50" y="70" width="200" height="120" class="data-box"/>
+                    <text x="150" y="95" text-anchor="middle" class="subtitle">Data Preprocessing</text>
+                    <text x="60" y="115" class="text">• Load Dataset (140K train, 25K val)</text>
+                    <text x="60" y="130" class="text">• Image Resize (256×256)</text>
+                    <text x="60" y="145" class="text">• Data Augmentation:</text>
+                    <text x="70" y="160" class="small-text">- Horizontal Flip, Rotation</text>
+                    <text x="70" y="175" class="small-text">- Color Jitter, Affine Transform</text>
+                    
+                    <!-- Model Architecture Stage -->
+                    <rect x="300" y="70" width="600" height="120" class="model-box"/>
+                    <text x="600" y="95" text-anchor="middle" class="subtitle">Multi-Model Architecture</text>
+                    
+                    <!-- Individual Models -->
+                    <rect x="320" y="110" width="150" height="70" class="box"/>
+                    <text x="395" y="130" text-anchor="middle" class="text">EfficientNet-B0</text>
+                    <text x="395" y="145" text-anchor="middle" class="small-text">ImageNet Pretrained</text>
+                    <text x="395" y="160" text-anchor="middle" class="small-text">2-class Classification</text>
+                    
+                    <rect x="490" y="110" width="150" height="70" class="box"/>
+                    <text x="565" y="130" text-anchor="middle" class="text">ResNet-18</text>
+                    <text x="565" y="145" text-anchor="middle" class="small-text">ImageNet Pretrained</text>
+                    <text x="565" y="160" text-anchor="middle" class="small-text">2-class Classification</text>
+                    
+                    <rect x="660" y="110" width="150" height="70" class="box"/>
+                    <text x="735" y="130" text-anchor="middle" class="text">ConvNeXt-Tiny</text>
+                    <text x="735" y="145" text-anchor="middle" class="small-text">ImageNet Pretrained</text>
+                    <text x="735" y="160" text-anchor="middle" class="small-text">2-class Classification</text>
+                    
+                    <!-- Training Configuration -->
+                    <rect x="950" y="70" width="200" height="120" class="box"/>
+                    <text x="1050" y="95" text-anchor="middle" class="subtitle">Training Config</text>
+                    <text x="960" y="115" class="text">• Batch Size: 96</text>
+                    <text x="960" y="130" class="text">• Learning Rate: 1e-4</text>
+                    <text x="960" y="145" class="text">• Epochs: 15</text>
+                    <text x="960" y="160" class="text">• AMP: Enabled</text>
+                    <text x="960" y="175" class="text">• Multi-GPU: 2×Tesla T4</text>
+                    
+                    <!-- Training Process -->
+                    <rect x="50" y="230" width="300" height="100" class="box"/>
+                    <text x="200" y="255" text-anchor="middle" class="subtitle">Training Process</text>
+                    <text x="60" y="275" class="text">• CrossEntropyLoss + Adam Optimizer</text>
+                    <text x="60" y="290" class="text">• ReduceLROnPlateau Scheduler</text>
+                    <text x="60" y="305" class="text">• Early Stopping (patience=4)</text>
+                    <text x="60" y="320" class="text">• Best Model Selection by Val Accuracy</text>
+                    
+                    <!-- Model Evaluation -->
+                    <rect x="400" y="230" width="300" height="100" class="box"/>
+                    <text x="550" y="255" text-anchor="middle" class="subtitle">Model Evaluation</text>
+                    <text x="410" y="275" class="text">• Accuracy, F1-Score Tracking</text>
+                    <text x="410" y="290" class="text">• Confusion Matrix Analysis</text>
+                    <text x="410" y="305" class="text">• Training History Visualization</text>
+                    <text x="410" y="320" class="text">• GPU Memory Monitoring</text>
+                    
+                    <!-- Interpretability Analysis -->
+                    <rect x="750" y="230" width="300" height="100" class="box"/>
+                    <text x="900" y="255" text-anchor="middle" class="subtitle">Interpretability</text>
+                    <text x="760" y="275" class="text">• Integrated Gradients (Captum)</text>
+                    <text x="760" y="290" class="text">• Feature Attribution Maps</text>
+                    <text x="760" y="305" class="text">• Model Decision Visualization</text>
+                    <text x="760" y="320" class="text">• Enhanced Heatmap Generation</text>
+                    
+                    <!-- Ensemble Learning -->
+                    <rect x="200" y="370" width="800" height="120" class="ensemble-box"/>
+                    <text x="600" y="395" text-anchor="middle" class="subtitle">Ensemble Learning Strategy</text>
+                    
+                    <!-- Voting Methods -->
+                    <rect x="220" y="410" width="180" height="70" class="box"/>
+                    <text x="310" y="430" text-anchor="middle" class="text">Soft Voting</text>
+                    <text x="310" y="445" text-anchor="middle" class="small-text">Average Probabilities</text>
+                    <text x="310" y="460" text-anchor="middle" class="small-text">Ensemble Prediction</text>
+                    
+                    <rect x="420" y="410" width="180" height="70" class="box"/>
+                    <text x="510" y="430" text-anchor="middle" class="text">Weighted Voting</text>
+                    <text x="510" y="445" text-anchor="middle" class="small-text">Accuracy-based Weights</text>
+                    <text x="510" y="460" text-anchor="middle" class="small-text">Softmax Normalization</text>
+                    
+                    <rect x="620" y="410" width="180" height="70" class="box"/>
+                    <text x="710" y="430" text-anchor="middle" class="text">Hard Voting</text>
+                    <text x="710" y="445" text-anchor="middle" class="small-text">Majority Vote</text>
+                    <text x="710" y="460" text-anchor="middle" class="small-text">Class Prediction</text>
+                    
+                    <rect x="820" y="410" width="160" height="70" class="box"/>
+                    <text x="900" y="430" text-anchor="middle" class="text">Consistency</text>
+                    <text x="900" y="445" text-anchor="middle" class="small-text">Model Agreement</text>
+                    <text x="900" y="460" text-anchor="middle" class="small-text">Heatmap Analysis</text>
+                    
+                    <!-- Final Results -->
+                    <rect x="300" y="530" width="600" height="100" class="result-box"/>
+                    <text x="600" y="555" text-anchor="middle" class="subtitle">Performance Analysis & Results</text>
+                    <text x="310" y="575" class="text">• Individual Model Performance Comparison</text>
+                    <text x="310" y="590" class="text">• Ensemble vs Single Model Accuracy</text>
+                    <text x="310" y="605" class="text">• Confidence Distribution Analysis</text>
+                    <text x="310" y="620" class="text">• Class-wise F1-Score Evaluation</text>
+                    
+                    <!-- Visualization Outputs -->
+                    <rect x="50" y="670" width="1100" height="80" class="box"/>
+                    <text x="600" y="695" text-anchor="middle" class="subtitle">Visualization Outputs</text>
+                    <text x="60" y="715" class="text">• Training History Plots • Confusion Matrices • Data Augmentation Effects • Model Interpretability Maps</text>
+                    <text x="60" y="730" class="text">• Ensemble Analysis Charts • Consistency Heatmaps • Confidence Distributions • Performance Comparisons</text>
+                    
+                    <!-- Flow Arrows -->
+                    <line x1="250" y1="130" x2="300" y2="130" class="flow-arrow"/>
+                    <line x1="900" y1="130" x2="950" y2="130" class="flow-arrow"/>
+                    <line x1="150" y1="190" x2="150" y2="230" class="flow-arrow"/>
+                    <line x1="200" y1="230" x2="200" y2="190" class="arrow"/>
+                    <line x1="350" y1="230" x2="450" y2="190" class="arrow"/>
+                    <line x1="550" y1="230" x2="650" y2="190" class="arrow"/>
+                    <line x1="700" y1="230" x2="800" y2="190" class="arrow"/>
+                    <line x1="600" y1="330" x2="600" y2="370" class="flow-arrow"/>
+                    <line x1="600" y1="490" x2="600" y2="530" class="flow-arrow"/>
+                    <line x1="600" y1="630" x2="600" y2="670" class="flow-arrow"/>
+                </svg>
+            </div>
+            
+            <div class="info-panel">
+                <h4>Research Flowchart Features</h4>
+                <ul class="feature-list">
+                    <li>Complete pipeline from data preprocessing to final results</li>
+                    <li>Multi-model ensemble learning architecture</li>
+                    <li>Advanced training configurations with AMP and multi-GPU support</li>
+                    <li>Comprehensive evaluation and interpretability analysis</li>
+                    <li>Multiple voting strategies for ensemble predictions</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div id="architecture" class="tab-content">
+            <div class="controls">
+                <h3>Architecture Controls</h3>
+                <div class="control-group">
+                    <button class="btn-primary" onclick="downloadSVG('architecture-svg', 'model_architecture.svg')">Download SVG</button>
+                    <button class="btn-secondary" onclick="resetZoom('architecture-svg')">Reset Zoom</button>
+                    <button class="btn-success" onclick="toggleFullscreen('architecture-container')">Fullscreen</button>
+                </div>
+            </div>
+            
+            <div class="diagram-container" id="architecture-container">
+                <svg id="architecture-svg" width="1400" height="900" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900">
+                    <!-- Model Architecture SVG Content -->
+                    <defs>
+                        <style>
+                            .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #2c3e50; }
+                            .subtitle { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #34495e; }
+                            .text { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
+                            .small-text { font-family: Arial, sans-serif; font-size: 10px; fill: #7f8c8d; }
+                            .tiny-text { font-family: Arial, sans-serif; font-size: 9px; fill: #95a5a6; }
+                            .input-box { fill: #e8f5e8; stroke: #27ae60; stroke-width: 2; rx: 8; ry: 8; }
+                            .model-box { fill: #e8f4fd; stroke: #3498db; stroke-width: 2; rx: 8; ry: 8; }
+                            .feature-box { fill: #fff3cd; stroke: #ffc107; stroke-width: 2; rx: 6; ry: 6; }
+                            .ensemble-box { fill: #fdf2e8; stroke: #e67e22; stroke-width: 2; rx: 8; ry: 8; }
+                            .output-box { fill: #f8e8f8; stroke: #9b59b6; stroke-width: 2; rx: 8; ry: 8; }
+                            .layer-box { fill: #f8f9fa; stroke: #6c757d; stroke-width: 1; rx: 4; ry: 4; }
+                            .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrowhead2); }
+                            .data-flow { stroke: #e74c3c; stroke-width: 3; fill: none; marker-end: url(#redarrowhead2); }
+                            .ensemble-flow { stroke: #e67e22; stroke-width: 3; fill: none; marker-end: url(#orangearrowhead2); }
+                        </style>
+                        <marker id="arrowhead2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#34495e" />
+                        </marker>
+                        <marker id="redarrowhead2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c" />
+                        </marker>
+                        <marker id="orangearrowhead2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#e67e22" />
+                        </marker>
+                    </defs>
+                    
+                    <!-- Title -->
+                    <text x="700" y="30" text-anchor="middle" class="title">Ensemble Learning Model Architecture</text>
+                    
+                    <!-- Input Layer -->
+                    <rect x="50" y="70" width="200" height="100" class="input-box"/>
+                    <text x="150" y="95" text-anchor="middle" class="subtitle">Input Images</text>
+                    <text x="150" y="115" text-anchor="middle" class="text">256 × 256 × 3</text>
+                    <text x="150" y="130" text-anchor="middle" class="small-text">RGB Images</text>
+                    <text x="150" y="145" text-anchor="middle" class="small-text">Batch Size: 96</text>
+                    <text x="150" y="160" text-anchor="middle" class="tiny-text">Real/Fake Classification</text>
+                    
+                    <!-- Data Augmentation -->
+                    <rect x="300" y="70" width="180" height="100" class="feature-box"/>
+                    <text x="390" y="95" text-anchor="middle" class="subtitle">Data Augmentation</text>
+                    <text x="310" y="115" class="small-text">• Horizontal Flip (p=0.5)</text>
+                    <text x="310" y="130" class="small-text">• Random Rotation (±15°)</text>
+                    <text x="310" y="145" class="small-text">• Color Jitter</text>
+                    <text x="310" y="160" class="small-text">• Affine Transform</text>
+                    
+                    <!-- Model 1: EfficientNet-B0 -->
+                    <rect x="50" y="220" width="350" height="180" class="model-box"/>
+                    <text x="225" y="245" text-anchor="middle" class="subtitle">EfficientNet-B0</text>
+                    
+                    <!-- EfficientNet Layers -->
+                    <rect x="70" y="260" width="80" height="30" class="layer-box"/>
+                    <text x="110" y="280" text-anchor="middle" class="tiny-text">Stem Conv</text>
+                    
+                    <rect x="160" y="260" width="80" height="30" class="layer-box"/>
+                    <text x="200" y="280" text-anchor="middle" class="tiny-text">MBConv Blocks</text>
+                    
+                    <rect x="250" y="260" width="80" height="30" class="layer-box"/>
+                    <text x="290" y="280" text-anchor="middle" class="tiny-text">Head Conv</text>
+                    
+                    <rect x="70" y="300" width="100" height="30" class="layer-box"/>
+                    <text x="120" y="320" text-anchor="middle" class="tiny-text">Global Avg Pool</text>
+                    
+                    <rect x="180" y="300" width="100" height="30" class="layer-box"/>
+                    <text x="230" y="320" text-anchor="middle" class="tiny-text">Dropout (0.2)</text>
+                    
+                    <rect x="290" y="300" width="80" height="30" class="layer-box"/>
+                    <text x="330" y="320" text-anchor="middle" class="tiny-text">FC (2 classes)</text>
+                    
+                    <text x="70" y="350" class="small-text">• ImageNet Pretrained</text>
+                    <text x="70" y="365" class="small-text">• Parameters: ~5.3M</text>
+                    <text x="70" y="380" class="small-text">• Compound Scaling</text>
+                    
+                    <!-- Model 2: ResNet-18 -->
+                    <rect x="450" y="220" width="350" height="180" class="model-box"/>
+                    <text x="625" y="245" text-anchor="middle" class="subtitle">ResNet-18</text>
+                    
+                    <!-- ResNet Layers -->
+                    <rect x="470" y="260" width="70" height="30" class="layer-box"/>
+                    <text x="505" y="280" text-anchor="middle" class="tiny-text">Conv1</text>
+                    
+                    <rect x="550" y="260" width="70" height="30" class="layer-box"/>
+                    <text x="585" y="280" text-anchor="middle" class="tiny-text">Layer1</text>
+                    
+                    <rect x="630" y="260" width="70" height="30" class="layer-box"/>
+                    <text x="665" y="280" text-anchor="middle" class="tiny-text">Layer2</text>
+                    
+                    <rect x="710" y="260" width="70" height="30" class="layer-box"/>
+                    <text x="745" y="280" text-anchor="middle" class="tiny-text">Layer3</text>
+                    
+                    <rect x="470" y="300" width="70" height="30" class="layer-box"/>
+                    <text x="505" y="320" text-anchor="middle" class="tiny-text">Layer4</text>
+                    
+                    <rect x="550" y="300" width="100" height="30" class="layer-box"/>
+                    <text x="600" y="320" text-anchor="middle" class="tiny-text">Avg Pool</text>
+                    
+                    <rect x="660" y="300" width="80" height="30" class="layer-box"/>
+                    <text x="700" y="320" text-anchor="middle" class="tiny-text">FC (2 classes)</text>
+                    
+                    <text x="470" y="350" class="small-text">• ImageNet Pretrained</text>
+                    <text x="470" y="365" class="small-text">• Parameters: ~11.7M</text>
+                    <text x="470" y="380" class="small-text">• Residual Connections</text>
+                    
+                    <!-- Model 3: ConvNeXt-Tiny -->
+                    <rect x="850" y="220" width="350" height="180" class="model-box"/>
+                    <text x="1025" y="245" text-anchor="middle" class="subtitle">ConvNeXt-Tiny</text>
+                    
+                    <!-- ConvNeXt Layers -->
+                    <rect x="870" y="260" width="70" height="30" class="layer-box"/>
+                    <text x="905" y="280" text-anchor="middle" class="tiny-text">Stem</text>
+                    
+                    <rect x="950" y="260" width="70" height="30" class="layer-box"/>
+                    <text x="985" y="280" text-anchor="middle" class="tiny-text">Stage1</text>
+                    
+                    <rect x="1030" y="260" width="70" height="30" class="layer-box"/>
+                    <text x="1065" y="280" text-anchor="middle" class="tiny-text">Stage2</text>
+                    
+                    <rect x="1110" y="260" width="70" height="30" class="layer-box"/>
+                    <text x="1145" y="280" text-anchor="middle" class="tiny-text">Stage3</text>
+                    
+                    <rect x="870" y="300" width="70" height="30" class="layer-box"/>
+                    <text x="905" y="320" text-anchor="middle" class="tiny-text">Stage4</text>
+                    
+                    <rect x="950" y="300" width="100" height="30" class="layer-box"/>
+                    <text x="1000" y="320" text-anchor="middle" class="tiny-text">Global Avg Pool</text>
+                    
+                    <rect x="1060" y="300" width="80" height="30" class="layer-box"/>
+                    <text x="1100" y="320" text-anchor="middle" class="tiny-text">FC (2 classes)</text>
+                    
+                    <text x="870" y="350" class="small-text">• ImageNet Pretrained</text>
+                    <text x="870" y="365" class="small-text">• Parameters: ~28.6M</text>
+                    <text x="870" y="380" class="small-text">• Modern CNN Design</text>
+                    
+                    <!-- Feature Extraction -->
+                    <rect x="200" y="450" width="150" height="60" class="feature-box"/>
+                    <text x="275" y="470" text-anchor="middle" class="text">Features 1</text>
+                    <text x="275" y="485" text-anchor="middle" class="small-text">EfficientNet</text>
+                    <text x="275" y="500" text-anchor="middle" class="small-text">Logits</text>
+                    
+                    <rect x="500" y="450" width="150" height="60" class="feature-box"/>
+                    <text x="575" y="470" text-anchor="middle" class="text">Features 2</text>
+                    <text x="575" y="485" text-anchor="middle" class="small-text">ResNet</text>
+                    <text x="575" y="500" text-anchor="middle" class="small-text">Logits</text>
+                    
+                    <rect x="800" y="450" width="150" height="60" class="feature-box"/>
+                    <text x="875" y="470" text-anchor="middle" class="text">Features 3</text>
+                    <text x="875" y="485" text-anchor="middle" class="small-text">ConvNeXt</text>
+                    <text x="875" y="500" text-anchor="middle" class="small-text">Logits</text>
+                    
+                    <!-- Ensemble Layer -->
+                    <rect x="400" y="560" width="500" height="120" class="ensemble-box"/>
+                    <text x="650" y="585" text-anchor="middle" class="subtitle">Ensemble Learning Module</text>
+                    
+                    <!-- Voting Strategies -->
+                    <rect x="420" y="600" width="120" height="60" class="layer-box"/>
+                    <text x="480" y="620" text-anchor="middle" class="small-text">Soft Voting</text>
+                    <text x="480" y="635" text-anchor="middle" class="tiny-text">Average</text>
+                    <text x="480" y="650" text-anchor="middle" class="tiny-text">Probabilities</text>
+                    
+                    <rect x="560" y="600" width="120" height="60" class="layer-box"/>
+                    <text x="620" y="620" text-anchor="middle" class="small-text">Weighted Voting</text>
+                    <text x="620" y="635" text-anchor="middle" class="tiny-text">Accuracy-based</text>
+                    <text x="620" y="650" text-anchor="middle" class="tiny-text">Weights</text>
+                    
+                    <rect x="700" y="600" width="120" height="60" class="layer-box"/>
+                    <text x="760" y="620" text-anchor="middle" class="small-text">Hard Voting</text>
+                    <text x="760" y="635" text-anchor="middle" class="tiny-text">Majority</text>
+                    <text x="760" y="650" text-anchor="middle" class="tiny-text">Decision</text>
+                    
+                    <!-- Final Output -->
+                    <rect x="500" y="720" width="300" height="80" class="output-box"/>
+                    <text x="650" y="745" text-anchor="middle" class="subtitle">Final Prediction</text>
+                    <text x="650" y="765" text-anchor="middle" class="text">Class: Real / Fake</text>
+                    <text x="650" y="780" text-anchor="middle" class="small-text">Confidence Score</text>
+                    <text x="650" y="795" text-anchor="middle" class="small-text">Ensemble Probability</text>
+                    
+                    <!-- Training Configuration -->
+                    <rect x="1250" y="70" width="130" height="150" class="feature-box"/>
+                    <text x="1315" y="95" text-anchor="middle" class="subtitle">Training</text>
+                    <text x="1260" y="115" class="small-text">• Loss: CrossEntropy</text>
+                    <text x="1260" y="130" class="small-text">• Optimizer: Adam</text>
+                    <text x="1260" y="145" class="small-text">• LR: 1e-4</text>
+                    <text x="1260" y="160" class="small-text">• Scheduler: Plateau</text>
+                    <text x="1260" y="175" class="small-text">• AMP: Enabled</text>
+                    <text x="1260" y="190" class="small-text">• Early Stopping</text>
+                    <text x="1260" y="205" class="small-text">• Multi-GPU</text>
+                    
+                    <!-- Performance Metrics -->
+                    <rect x="1050" y="560" width="300" height="120" class="output-box"/>
+                    <text x="1200" y="585" text-anchor="middle" class="subtitle">Performance Metrics</text>
+                    <text x="1060" y="605" class="small-text">• Accuracy: Individual vs Ensemble</text>
+                    <text x="1060" y="620" class="small-text">• F1-Score: Per Class Analysis</text>
+                    <text x="1060" y="635" class="small-text">• Confusion Matrix</text>
+                    <text x="1060" y="650" class="small-text">• Model Consistency Heatmap</text>
+                    <text x="1060" y="665" class="small-text">• Confidence Distribution</text>
+                    
+                    <!-- Data Flow Arrows -->
+                    <line x1="250" y1="120" x2="300" y2="120" class="data-flow"/>
+                    <line x1="480" y1="120" x2="530" y2="120" class="data-flow"/>
+                    
+                    <!-- Input to Models -->
+                    <line x1="150" y1="170" x2="150" y2="220" class="data-flow"/>
+                    <line x1="150" y1="200" x2="225" y2="220" class="arrow"/>
+                    <line x1="150" y1="200" x2="625" y2="220" class="arrow"/>
+                    <line x1="150" y1="200" x2="1025" y2="220" class="arrow"/>
+                    
+                    <!-- Models to Features -->
+                    <line x1="225" y1="400" x2="275" y2="450" class="data-flow"/>
+                    <line x1="625" y1="400" x2="575" y2="450" class="data-flow"/>
+                    <line x1="1025" y1="400" x2="875" y2="450" class="data-flow"/>
+                    
+                    <!-- Features to Ensemble -->
+                    <line x1="275" y1="510" x2="480" y2="560" class="ensemble-flow"/>
+                    <line x1="575" y1="510" x2="620" y2="560" class="ensemble-flow"/>
+                    <line x1="875" y1="510" x2="760" y2="560" class="ensemble-flow"/>
+                    
+                    <!-- Ensemble to Output -->
+                    <line x1="650" y1="680" x2="650" y2="720" class="data-flow"/>
+                    
+                    <!-- Architecture Details -->
+                    <rect x="50" y="820" width="1300" height="60" class="layer-box"/>
+                    <text x="700" y="840" text-anchor="middle" class="subtitle">Architecture Highlights</text>
+                    <text x="60" y="860" class="text">• Multi-GPU Training with DataParallel • AMP Mixed Precision for Speed • Transfer Learning from ImageNet • Ensemble Voting Strategies</text>
+                    <text x="60" y="875" class="text">• Real-time Interpretability with Integrated Gradients • Model Consistency Analysis • Confidence-based Prediction Filtering</text>
+                </svg>
+            </div>
+            
+            <div class="info-panel">
+                <h4>Model Architecture Features</h4>
+                <ul class="feature-list">
+                    <li>Three state-of-the-art CNN architectures: EfficientNet-B0, ResNet-18, ConvNeXt-Tiny</li>
+                    <li>Transfer learning from ImageNet pretrained weights</li>
+                    <li>Multiple ensemble voting strategies (soft, weighted, hard)</li>
+                    <li>Advanced training optimizations (AMP, multi-GPU, early stopping)</li>
+                    <li>Comprehensive performance evaluation and interpretability analysis</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="zoom-controls">
+        <button onclick="zoomIn()" title="Zoom In">+</button>
+        <button onclick="zoomOut()" title="Zoom Out">-</button>
+        <button onclick="resetZoom()" title="Reset Zoom">⌂</button>
+    </div>
+    
+    <script>
+        let currentZoom = 1;
+        let currentTab = 'flowchart';
+        
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+            
+            currentTab = tabName;
+        }
+        
+        function downloadSVG(svgId, filename) {
+            const svg = document.getElementById(svgId);
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            const svgUrl = URL.createObjectURL(svgBlob);
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = svgUrl;
+            downloadLink.download = filename;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(svgUrl);
+        }
+        
+        function zoomIn() {
+            currentZoom *= 1.2;
+            applySVGZoom();
+        }
+        
+        function zoomOut() {
+            currentZoom /= 1.2;
+            applySVGZoom();
+        }
+        
+        function resetZoom(svgId) {
+            currentZoom = 1;
+            if (svgId) {
+                const svg = document.getElementById(svgId);
+                svg.style.transform = 'scale(1)';
+            } else {
+                applySVGZoom();
+            }
+        }
+        
+        function applySVGZoom() {
+            const svgId = currentTab === 'flowchart' ? 'flowchart-svg' : 'architecture-svg';
+            const svg = document.getElementById(svgId);
+            svg.style.transform = `scale(${currentZoom})`;
+            svg.style.transformOrigin = 'top left';
+        }
+        
+        function toggleFullscreen(containerId) {
+            const container = document.getElementById(containerId);
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        // Add pan functionality
+        let isPanning = false;
+        let startX, startY, scrollLeft, scrollTop;
+        
+        document.querySelectorAll('.diagram-container').forEach(container => {
+            container.addEventListener('mousedown', (e) => {
+                isPanning = true;
+                startX = e.pageX - container.offsetLeft;
+                startY = e.pageY - container.offsetTop;
+                scrollLeft = container.scrollLeft;
+                scrollTop = container.scrollTop;
+                container.style.cursor = 'grabbing';
+            });
+            
+            container.addEventListener('mouseleave', () => {
+                isPanning = false;
+                container.style.cursor = 'grab';
+            });
+            
+            container.addEventListener('mouseup', () => {
+                isPanning = false;
+                container.style.cursor = 'grab';
+            });
+            
+            container.addEventListener('mousemove', (e) => {
+                if (!isPanning) return;
+                e.preventDefault();
+                const x = e.pageX - container.offsetLeft;
+                const y = e.pageY - container.offsetTop;
+                const walkX = (x - startX) * 2;
+                const walkY = (y - startY) * 2;
+                container.scrollLeft = scrollLeft - walkX;
+                container.scrollTop = scrollTop - walkY;
+            });
+            
+            container.style.cursor = 'grab';
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case '=':
+                    case '+':
+                        e.preventDefault();
+                        zoomIn();
+                        break;
+                    case '-':
+                        e.preventDefault();
+                        zoomOut();
+                        break;
+                    case '0':
+                        e.preventDefault();
+                        resetZoom();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
