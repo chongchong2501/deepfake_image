@@ -9,12 +9,14 @@
       .input-box { fill: #e8f5e8; stroke: #27ae60; stroke-width: 2; rx: 8; ry: 8; }
       .model-box { fill: #e8f4fd; stroke: #3498db; stroke-width: 2; rx: 8; ry: 8; }
       .feature-box { fill: #fff3cd; stroke: #ffc107; stroke-width: 2; rx: 6; ry: 6; }
+      .training-box { fill: #f0e6ff; stroke: #8e44ad; stroke-width: 2; rx: 8; ry: 8; }
       .ensemble-box { fill: #fdf2e8; stroke: #e67e22; stroke-width: 2; rx: 8; ry: 8; }
       .output-box { fill: #f8e8f8; stroke: #9b59b6; stroke-width: 2; rx: 8; ry: 8; }
       .layer-box { fill: #f8f9fa; stroke: #6c757d; stroke-width: 1; rx: 4; ry: 4; }
       .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
       .data-flow { stroke: #e74c3c; stroke-width: 3; fill: none; marker-end: url(#redarrowhead); }
       .ensemble-flow { stroke: #e67e22; stroke-width: 3; fill: none; marker-end: url(#orangearrowhead); }
+      .training-flow { stroke: #8e44ad; stroke-width: 3; fill: none; marker-end: url(#purplearrowhead); }
     </style>
     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#34495e" />
@@ -24,6 +26,9 @@
     </marker>
     <marker id="orangearrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#e67e22" />
+    </marker>
+    <marker id="purplearrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8e44ad" />
     </marker>
   </defs>
   
@@ -45,6 +50,14 @@
   <text x="310" y="130" class="small-text">• Random Rotation (±15°)</text>
   <text x="310" y="145" class="small-text">• Color Jitter</text>
   <text x="310" y="160" class="small-text">• Affine Transform</text>
+  
+  <!-- Training Process -->
+  <rect x="530" y="70" width="200" height="100" class="training-box"/>
+  <text x="630" y="95" text-anchor="middle" class="subtitle">Training Process</text>
+  <text x="630" y="115" text-anchor="middle" class="text">Multi-Model Training</text>
+  <text x="630" y="130" text-anchor="middle" class="small-text">Transfer Learning</text>
+  <text x="630" y="145" text-anchor="middle" class="small-text">Fine-tuning</text>
+  <text x="630" y="160" text-anchor="middle" class="tiny-text">Parallel Training</text>
   
   <!-- Model 1: EfficientNet-B0 -->
   <rect x="50" y="220" width="350" height="180" class="model-box"/>
@@ -196,15 +209,17 @@
   <text x="1060" y="650" class="small-text">• Model Consistency Heatmap</text>
   <text x="1060" y="665" class="small-text">• Confidence Distribution</text>
   
-  <!-- Data Flow Arrows -->
+  <!-- Corrected Data Flow Arrows -->
+  <!-- Input to Data Augmentation -->
   <line x1="250" y1="120" x2="300" y2="120" class="data-flow"/>
+  
+  <!-- Data Augmentation to Training -->
   <line x1="480" y1="120" x2="530" y2="120" class="data-flow"/>
   
-  <!-- Input to Models -->
-  <line x1="150" y1="170" x2="150" y2="220" class="data-flow"/>
-  <line x1="150" y1="200" x2="225" y2="220" class="arrow"/>
-  <line x1="150" y1="200" x2="625" y2="220" class="arrow"/>
-  <line x1="150" y1="200" x2="1025" y2="220" class="arrow"/>
+  <!-- Training to Models -->
+  <line x1="630" y1="170" x2="225" y2="220" class="training-flow"/>
+  <line x1="630" y1="170" x2="625" y2="220" class="training-flow"/>
+  <line x1="630" y1="170" x2="1025" y2="220" class="training-flow"/>
   
   <!-- Models to Features -->
   <line x1="225" y1="400" x2="275" y2="450" class="data-flow"/>
