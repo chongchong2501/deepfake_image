@@ -1,7 +1,7 @@
 <svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
-      .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #2c3e50; }
+      .title { font-family: Arial, sans-serif; font-size: 36px; font-weight: bold; fill: #2c3e50; }
       .subtitle { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #34495e; }
       .text { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
       .small-text { font-family: Arial, sans-serif; font-size: 10px; fill: #7f8c8d; }
